@@ -1,0 +1,6 @@
+spring:
+  application:
+    name: megatlon
+
+  profiles:
+    active: dev # cambiar el perfil entre dev, qa, prod
