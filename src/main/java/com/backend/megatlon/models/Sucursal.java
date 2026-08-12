@@ -23,4 +23,8 @@ public class Sucursal {
 
     @Column(length = 20)
     private String telefono;
+
+    @Builder.Default
+    @Column(name = "activo", nullable = false)
+    private Boolean activo = true;
 }

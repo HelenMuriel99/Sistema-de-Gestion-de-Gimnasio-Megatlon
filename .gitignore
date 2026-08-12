@@ -31,3 +31,5 @@ build/
 
 ### VS Code ###
 .vscode/
+/db/gimnasio_dev.db-shm
+/db/gimnasio_dev.db-wal
