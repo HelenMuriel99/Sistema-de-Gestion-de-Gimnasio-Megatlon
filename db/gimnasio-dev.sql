@@ -35,7 +35,7 @@
         segundo_apellido varchar(50),
         segundo_nombre varchar(50),
         direccion varchar(255),
-        estado_acceso varchar(255) not null check ((estado_acceso in ('ACTIVO','BLOQUEADO_INTENTOS','BLOQUEADO_MORA'))),
+        estado_acceso varchar(255) not null check ((estado_acceso in ('ACTIVO','BLOQUEADO_INTENTOS','BLOQUEADO_MORA','INACTIVO'))),
         password varchar(255) not null,
         primary key (id)
     );

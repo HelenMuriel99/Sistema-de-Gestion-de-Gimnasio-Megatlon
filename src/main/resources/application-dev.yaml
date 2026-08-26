@@ -20,7 +20,7 @@ spring:
       jakarta.persistence.schema-generation.scripts.action: create
       jakarta.persistence.schema-generation.scripts.create-target: ./db/gimnasio-dev.sql
       # Obliga a crear las tablas en la base de datos SQLite activa
-      jakarta.persistence.schema-generation.database.action: drop-and-create
+      jakarta.persistence.schema-generation.database.action: create-drop
   sql:
     init:
       mode: always

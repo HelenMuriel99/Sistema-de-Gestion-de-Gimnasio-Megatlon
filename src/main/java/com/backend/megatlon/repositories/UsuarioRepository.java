@@ -22,4 +22,8 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
 
     // Listar usuarios filtrados por Rol (ej: todos los CLIENTE)
     List<Usuario> findByRolNombreRol(RolNombre nombreRol);
+
+    //Verifica de forma eficiente si existe al menos un usuario PROPIETARIO
+    boolean existsByRolNombreRol(RolNombre nombreRol);
+
 }
