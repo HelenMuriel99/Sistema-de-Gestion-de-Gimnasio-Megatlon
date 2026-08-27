@@ -1,5 +1,6 @@
 package com.backend.megatlon.repositories;
 
+import com.backend.megatlon.enums.EstadoAcceso;
 import com.backend.megatlon.enums.RolNombre;
 import com.backend.megatlon.models.Rol;
 import com.backend.megatlon.models.Usuario;
@@ -28,4 +29,7 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
     boolean existsByRolNombreRol(RolNombre nombreRol);
 
     boolean existsByRol(Rol rolAdmin);
+
+    // NUEVO MÉTODO: Obtener empleados (filtrados por roles y estado de acceso ACTIVO)
+    List<Usuario> findByRolNombreRolInAndEstadoAcceso(List<RolNombre> roles, EstadoAcceso estadoAcceso);
 }
