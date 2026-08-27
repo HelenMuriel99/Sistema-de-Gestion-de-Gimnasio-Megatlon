@@ -1,6 +1,7 @@
 package com.backend.megatlon.repositories;
 
 import com.backend.megatlon.enums.RolNombre;
+import com.backend.megatlon.models.Rol;
 import com.backend.megatlon.models.Usuario;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -26,4 +27,5 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
     //Verifica de forma eficiente si existe al menos un usuario PROPIETARIO
     boolean existsByRolNombreRol(RolNombre nombreRol);
 
+    boolean existsByRol(Rol rolAdmin);
 }

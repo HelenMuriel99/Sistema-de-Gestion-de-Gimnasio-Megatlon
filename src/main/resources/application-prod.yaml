@@ -1,15 +1,40 @@
 server:
-  port: 8082
+  port: 8080
 
 spring:
   config:
     activate:
       on-profile: prod
   datasource:
-    url: jdbc:sqlite:./db/gimnasio_prod.db
+    url: jdbc:sqlite:./db/gimnasio_dev.db?foreign_keys=true&journal_mode=WAL&busy_timeout=5000
     driver-class-name: org.sqlite.JDBC
   jpa:
     database-platform: org.hibernate.community.dialect.SQLiteDialect
     hibernate:
       ddl-auto: update
-    show-sql: false
+    show-sql: true
+    defer-datasource-initialization: true
+    properties:
+      hibernate.format_sql: true
+      jakarta.persistence.schema-generation.scripts.action: create
+      jakarta.persistence.schema-generation.scripts.create-target: ./db/gimnasio-dev.sql
+      jakarta.persistence.schema-generation.database.action: create-drop
+  sql:
+    init:
+      mode: always
+      data-locations: classpath:data.sql
+
+# -------------------------------------------------------------------
+# CONFIGURACIÓN DE LOGS (Habilita la traza en consola)
+# -------------------------------------------------------------------
+logging:
+  level:
+    root: INFO
+    # Muestra las URLs de las peticiones HTTP entrantes en el Controller
+    org.springframework.web: DEBUG
+    # Muestra las excepciones capturadas por Spring MVC
+    org.springframework.web.servlet.mvc.method.annotation.ExceptionHandlerExceptionResolver: DEBUG
+    # Muestra los paquetes de tu código con máximo detalle
+    com.backend.megatlon: DEBUG
+    # Muestra los valores de las consultas SQL (?) ejecutadas por Hibernate
+    org.hibernate.type.descriptor.sql: TRACE
