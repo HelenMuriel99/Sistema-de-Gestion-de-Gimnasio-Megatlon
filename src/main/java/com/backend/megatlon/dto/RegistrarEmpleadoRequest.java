@@ -1,13 +1,19 @@
 package com.backend.megatlon.dto;
 
 import com.backend.megatlon.enums.RolNombre;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Data
-public class PersonalRegistroRequest {
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
+public class RegistrarEmpleadoRequest {
     private String ci;
     private String primerNombre;
     private String segundoNombre;
@@ -17,7 +23,7 @@ public class PersonalRegistroRequest {
     private String genero;
     private String telefono;
     private String direccion;
+    private RolNombre rolNombre; // RECEPCIONISTA o INSTRUCTOR
     private Long sucursalBaseId;
-    private RolNombre rol; // RECEPCIONISTA o INSTRUCTOR
-    private BigDecimal salarioFijo;
+    private BigDecimal salarioFijo; // Opcional (si no viene, toma el valor por defecto 3350.00)
 }

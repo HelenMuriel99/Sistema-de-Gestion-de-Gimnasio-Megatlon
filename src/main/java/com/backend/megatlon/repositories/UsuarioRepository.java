@@ -1,10 +1,10 @@
 package com.backend.megatlon.repositories;
 
-import com.backend.megatlon.enums.EstadoAcceso;
 import com.backend.megatlon.enums.RolNombre;
-import com.backend.megatlon.models.Rol;
 import com.backend.megatlon.models.Usuario;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -13,23 +13,19 @@ import java.util.Optional;
 @Repository
 public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
 
-    // Búsqueda por CI para Login y consultas específicas (0 o 1 resultado)
+    // Consulta optimizada para cargar usuario + rol + sucursal base de una sola vez
+    @Query("SELECT u FROM Usuario u JOIN FETCH u.rol JOIN FETCH u.sucursalBase WHERE u.ci = :ci")
+    Optional<Usuario> findByCiWithRelations(@Param("ci") String ci);
+
+    // Búsqueda simple
     Optional<Usuario> findByCi(String ci);
 
-    // Validación rápida antes de registrar para evitar CIs duplicados
+    // Validación rápida antes de registrar
     boolean existsByCi(String ci);
 
-    // Listar usuarios filtrados por Sucursal
+    // Listar por sucursal
     List<Usuario> findBySucursalBaseId(Long sucursalId);
 
-    // Listar usuarios filtrados por Rol (ej: todos los CLIENTE)
+    // Listar por rol
     List<Usuario> findByRolNombreRol(RolNombre nombreRol);
-
-    //Verifica de forma eficiente si existe al menos un usuario PROPIETARIO
-    boolean existsByRolNombreRol(RolNombre nombreRol);
-
-    boolean existsByRol(Rol rolAdmin);
-
-    // NUEVO MÉTODO: Obtener empleados (filtrados por roles y estado de acceso ACTIVO)
-    List<Usuario> findByRolNombreRolInAndEstadoAcceso(List<RolNombre> roles, EstadoAcceso estadoAcceso);
 }

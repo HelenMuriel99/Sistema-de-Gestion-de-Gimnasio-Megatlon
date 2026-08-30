@@ -1,6 +1,7 @@
 package com.backend.megatlon.controllers;
 
-import com.backend.megatlon.dto.*;
+import com.backend.megatlon.dto.AuthRequest;
+import com.backend.megatlon.dto.AuthResponse;
 import com.backend.megatlon.services.AuthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -13,15 +14,8 @@ public class AuthController {
 
     private final AuthService authService;
 
-    // Endpoint 1: Registro del Propietario inicial
-    @PostMapping("/admin/setup")
-    public ResponseEntity<PropietarioSetupResponse> setupPropietario(@RequestBody PropietarioSetupRequest request) {
-        return ResponseEntity.ok(authService.registrarPropietario(request));
-    }
-
-    // Endpoint 2: Login de credenciales
-    @PostMapping("/admin/login")
-    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest request) {
+    @PostMapping("/login")
+    public ResponseEntity<AuthResponse> login(@RequestBody AuthRequest request) {
         return ResponseEntity.ok(authService.login(request));
     }
 }

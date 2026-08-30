@@ -14,4 +14,5 @@ public interface EmpleadoDetalleRepository extends JpaRepository<EmpleadoDetalle
 
     // Verificar si un usuario ya tiene registro de empleado
     boolean existsByUsuarioId(Long usuarioId);
+
 }
