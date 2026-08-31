@@ -1,24 +1,19 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, AuthContext } from './context/AuthContext';
 import { useContext } from 'react';
+
+// Importamos solo las pantallas que SÍ existen
 import Login from './pages/Login';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import Empleados from './pages/Empleados';
 
-// Componente guardián: Protege las rutas internas
+// Componente guardián para proteger las rutas
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useContext(AuthContext);
   
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-megatlon-dark flex items-center justify-center">
-        <p className="text-megatlon-primary font-bold text-xl">Cargando Sistema...</p>
-      </div>
-    );
-  }
+  if (loading) return <div className="min-h-screen flex items-center justify-center">Cargando sistema...</div>;
   
-  // Si no hay usuario, lo devolvemos al Login
   if (!user) return <Navigate to="/" />;
   
   return children;
@@ -29,23 +24,13 @@ function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          {/* Ruta Pública */}
+          {/* Ruta pública */}
           <Route path="/" element={<Login />} />
           
-          {/* Rutas Privadas envueltas en el Layout */}
-          <Route 
-            element={
-              <ProtectedRoute>
-                <Layout />
-              </ProtectedRoute>
-            }
-          >
-            {/* Todas estas rutas se inyectan en el <Outlet /> de Layout.jsx */}
+          {/* Rutas protegidas (Dentro del Layout) */}
+          <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
             <Route path="/dashboard" element={<Dashboard />} />
-            
-            {/* Aquí agregaremos las demás pantallas luego */}
-            {<Route path="/empleados" element={<Empleados />} />}
-            {<Route path="/clientes" element={<Clientes />} />}
+            <Route path="/empleados" element={<Empleados />} />
           </Route>
         </Routes>
       </BrowserRouter>
