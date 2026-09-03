@@ -157,7 +157,7 @@ export default function Clientes() {
         )}
       </div>
 
-      {/* Modal Nueva Inscripción (Integrado) */}
+      {/* Modal Nueva Inscripción */}
       {modalNuevoOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl overflow-hidden">
@@ -169,12 +169,9 @@ export default function Clientes() {
               e.preventDefault();
               setGuardando(true);
               try {
-                // Llamamos al nuevo endpoint que hizo Fabrizzio
                 await api.post('/recepcionista/clientes', nuevoCliente);
                 setModalNuevoOpen(false);
                 cargarClientes();
-                
-                // Limpiamos el formulario para el siguiente registro
                 setNuevoCliente({
                   ci: '', primerNombre: '', segundoNombre: '', primerApellido: '', 
                   segundoApellido: '', fechaNacimiento: '', genero: 'MASCULINO', 
@@ -216,7 +213,7 @@ export default function Clientes() {
         </div>
       )}
 
-      {/* Modal Editar Cliente (Integrado) */}
+      {/* Modal Editar Cliente */}
       {clienteAEditar && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl overflow-hidden">
