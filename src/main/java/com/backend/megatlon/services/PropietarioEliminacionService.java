@@ -53,7 +53,7 @@ public class PropietarioEliminacionService {
                 .nombreCompleto(nombreCompleto)
                 .estadoAccesoPrevio(estadoPrevio)
                 .estadoAccesoNuevo(EstadoAcceso.INACTIVO.name())
-                .mensaje("Usuario desactivado correctamente mediante Soft Delete.")
+                .mensaje("Usuario Eliminado.")
                 .build();
     }
 }
