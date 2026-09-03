@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, AuthContext } from './context/AuthContext';
 import { useContext } from 'react';
 
+import Pos from './pages/Pos';
 import Login from './pages/Login';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
@@ -34,6 +35,7 @@ function App() {
             <Route path="/empleados" element={<Empleados />} />
             <Route path="/clientes" element={<Clientes />} />
             <Route path="/membresias" element={<Membresias />} />
+            <Route path="/pos" element={<Pos />} />
           </Route>
         </Routes>
       </BrowserRouter>
