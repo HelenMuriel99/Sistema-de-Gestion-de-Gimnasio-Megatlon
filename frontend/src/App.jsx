@@ -7,6 +7,7 @@ import Login from './pages/Login';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import Empleados from './pages/Empleados';
+import Membresias from './pages/Membresias';
 
 // Componente guardián para proteger las rutas
 const ProtectedRoute = ({ children }) => {
@@ -31,6 +32,7 @@ function App() {
           <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/empleados" element={<Empleados />} />
+            <Route path="/membresias" element={<Membresias />} />
           </Route>
         </Routes>
       </BrowserRouter>

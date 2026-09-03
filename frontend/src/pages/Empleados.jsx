@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
-import { Search, Plus, Edit, Trash2, ShieldAlert, AlertTriangle } from 'lucide-react';
+import { Search, Plus, Edit, Trash2, ShieldAlert, AlertTriangle, CheckCircle } from 'lucide-react';
 import ModalNuevoEmpleado from '../components/ModalNuevoEmpleado';
 import ModalEditarEmpleado from '../components/ModalEditarEmpleado';
 
@@ -159,15 +159,25 @@ export default function Empleados() {
                         <Edit size={18} />
                       </button>
                       
-                      {/* Ocultamos el botón de eliminar si el empleado es PROPIETARIO o ya está INACTIVO */}
-                      {emp.rol !== 'PROPIETARIO' && emp.estadoAcceso !== 'INACTIVO' && (
-                        <button 
-                          onClick={() => setEmpleadoAEliminar(emp)} 
-                          className="text-red-500 hover:text-red-700 p-1 mx-1 transition-colors" 
-                          title="Dar de baja"
-                        >
-                          <Trash2 size={18} />
-                        </button>
+                      {/* LÓGICA DE ACTIVAR / DESACTIVAR */}
+                      {emp.rol !== 'PROPIETARIO' && (
+                        emp.estadoAcceso === 'INACTIVO' ? (
+                          <button 
+                            onClick={() => alert("El backend aún no tiene el endpoint para Reactivar. ¡Dile a Fabrizzio que lo haga!")} 
+                            className="text-green-500 hover:text-green-700 p-1 mx-1 transition-colors" 
+                            title="Reactivar Usuario"
+                          >
+                            <CheckCircle size={18} />
+                          </button>
+                        ) : (
+                          <button 
+                            onClick={() => setEmpleadoAEliminar(emp)} 
+                            className="text-red-500 hover:text-red-700 p-1 mx-1 transition-colors" 
+                            title="Dar de baja"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        )
                       )}
                     </td>
                   </tr>
