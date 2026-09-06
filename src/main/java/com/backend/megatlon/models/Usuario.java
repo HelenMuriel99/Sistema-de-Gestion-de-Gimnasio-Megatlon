@@ -41,7 +41,7 @@ public class Usuario {
     @Column(length = 20)
     private String genero;
 
-    @Column(length = 20)
+    @Column(length = 20, unique = true)
     private String telefono;
 
     @Column(length = 255)

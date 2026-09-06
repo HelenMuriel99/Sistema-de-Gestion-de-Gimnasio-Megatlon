@@ -39,6 +39,10 @@ public class PropietarioService {
             throw new IllegalArgumentException("Ya existe un usuario registrado con el CI: " + request.getCi());
         }
 
+        if (usuarioRepository.existsByTelefono(request.getTelefono())) {
+            throw new IllegalArgumentException("Ya existe un usuario con ese telefono: " + request.getTelefono());
+        }
+
         // 2. Restringir el registro únicamente a RECEPCIONISTA o INSTRUCTOR
         if (request.getRolNombre() != RolNombre.RECEPCIONISTA && request.getRolNombre() != RolNombre.INSTRUCTOR) {
             throw new IllegalArgumentException("El Propietario solo puede registrar usuarios con rol RECEPCIONISTA o INSTRUCTOR.");

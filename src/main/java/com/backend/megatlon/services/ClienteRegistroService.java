@@ -33,6 +33,10 @@ public class ClienteRegistroService {
             throw new IllegalArgumentException("Ya existe un usuario registrado con el CI: " + request.getCi());
         }
 
+        if (usuarioRepository.existsByTelefono(request.getTelefono())) {
+            throw new IllegalArgumentException("Ya existe un usuario con ese telefono: " + request.getTelefono());
+        }
+
         // 3. Obtener el rol CLIENTE
         Rol rolCliente = rolRepository.findByNombreRol(RolNombre.CLIENTE)
                 .orElseThrow(() -> new RuntimeException("El rol CLIENTE no se encuentra configurado en el sistema."));

@@ -28,4 +28,7 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
 
     // Listar por rol
     List<Usuario> findByRolNombreRol(RolNombre nombreRol);
+
+    //no existe telefono repetido
+    boolean existsByTelefono(String telefono);
 }
