@@ -5,6 +5,7 @@ import { X, CheckCircle, AlertCircle, Save } from 'lucide-react';
 export default function ModalNuevoEmpleado({ isOpen, onClose, onSuccess }) {
   const initialState = {
     ci: '',
+    complementoCi: '', // <-- NUEVO CAMPO AGREGADO
     primerNombre: '',
     segundoNombre: '',
     primerApellido: '',
@@ -33,6 +34,8 @@ export default function ModalNuevoEmpleado({ isOpen, onClose, onSuccess }) {
     // Filtros en tiempo real para evitar caracteres inválidos
     if (name === 'ci' || name === 'telefono') {
       valorLimpio = value.replace(/\D/g, ''); // Solo números
+    } else if (name === 'complementoCi') {
+      valorLimpio = value.replace(/[^a-zA-Z]/g, '').slice(0, 2).toUpperCase(); // <-- SOLO LETRAS, MAX 2, MAYÚSCULAS
     } else if (name === 'primerNombre' || name === 'segundoNombre' || name === 'primerApellido' || name === 'segundoApellido') {
       valorLimpio = value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, ''); // Solo letras y espacios
     }
@@ -138,15 +141,17 @@ export default function ModalNuevoEmpleado({ isOpen, onClose, onSuccess }) {
 
     try {
       const payload = {
-        ci: formData.ci.trim(),
-        primerNombre: formData.primerNombre.trim(),
-        segundoNombre: formData.segundoNombre.trim() || null,
-        primerApellido: formData.primerApellido.trim(),
-        segundoApellido: formData.segundoApellido.trim() || null,
+        ci: formData.ci?.trim(),
+        // Agregamos ?. para que si es undefined no intente hacer trim() y no rompa la app
+        complementoCi: formData.complementoCi?.trim() || null, 
+        primerNombre: formData.primerNombre?.trim(),
+        segundoNombre: formData.segundoNombre?.trim() || null,
+        primerApellido: formData.primerApellido?.trim(),
+        segundoApellido: formData.segundoApellido?.trim() || null,
         fechaNacimiento: formData.fechaNacimiento,
         genero: formData.genero,
-        telefono: formData.telefono.trim(),
-        direccion: formData.direccion.trim(),
+        telefono: formData.telefono?.trim(),
+        direccion: formData.direccion?.trim(),
         rolNombre: formData.rolNombre,
         sucursalBaseId: parseInt(formData.sucursalBaseId, 10),
         salarioFijo: formData.salarioFijo ? parseFloat(formData.salarioFijo) : null
@@ -159,17 +164,25 @@ export default function ModalNuevoEmpleado({ isOpen, onClose, onSuccess }) {
     } catch (err) {
       console.error(err);
       
-      const serverMessage = err.response?.data?.message || err.response?.data;
+      const serverMessage = err.response?.data?.message || err.response?.data || '';
+      const msgLower = typeof serverMessage === 'string' ? serverMessage.toLowerCase() : '';
 
-      // Verificación de CI duplicado (Status 409, 400 o texto descriptivo)
-      if (
-        err.response?.status === 403 || 
-        (typeof serverMessage === 'string' && serverMessage.toLowerCase().includes('ci'))
-      ) {
+      // <-- DETECCIÓN DE TELÉFONO DUPLICADO Y POP-UP -->
+      if (msgLower.includes('telefono') || msgLower.includes('teléfono') || msgLower.includes('duplicado')) {
+        const errorTelefono = 'Este número de teléfono ya se encuentra registrado por otro empleado.';
+        alert(errorTelefono); // Aparece la ventana emergente
+        setError(errorTelefono); // También se muestra en el banner rojo
+      } 
+      // Verificación de CI duplicado
+      else if (err.response?.status === 409 || msgLower.includes('ci')) {
         setError('Ya existe un usuario o empleado registrado con este Carnet de Identidad (CI).');
-      } else if (typeof serverMessage === 'string' && serverMessage) {
+      } 
+      // Otros errores del servidor
+      else if (typeof serverMessage === 'string' && serverMessage) {
         setError(serverMessage);
-      } else {
+      } 
+      // Error por defecto
+      else {
         setError('Error al registrar el empleado. Revisa la conexión o tus permisos.');
       }
     } finally {
@@ -293,16 +306,29 @@ export default function ModalNuevoEmpleado({ isOpen, onClose, onSuccess }) {
             <hr className="border-gray-100" />
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              
+              {/* <-- MODIFICACIÓN UI PARA EL CI + COMPLEMENTO --> */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Carnet de Identidad (CI) *</label>
-                <input 
-                  type="text" 
-                  name="ci" 
-                  value={formData.ci} 
-                  onChange={handleChange} 
-                  placeholder="Ej. 1234567"
-                  className={`w-full border rounded-lg p-2 focus:ring-2 focus:outline-none ${errores.ci ? 'border-red-500 focus:ring-red-200' : 'border-gray-300 focus:ring-red-500'}`} 
-                />
+                <div className="flex gap-2">
+                  <input 
+                    type="text" 
+                    name="ci" 
+                    value={formData.ci} 
+                    onChange={handleChange} 
+                    placeholder="Ej. 1234567"
+                    className={`w-2/3 border rounded-lg p-2 focus:ring-2 focus:outline-none ${errores.ci ? 'border-red-500 focus:ring-red-200' : 'border-gray-300 focus:ring-red-500'}`} 
+                  />
+                  <input 
+                    type="text" 
+                    name="complementoCi" 
+                    value={formData.complementoCi} 
+                    onChange={handleChange} 
+                    placeholder="Ej. AB"
+                    title="Complemento"
+                    className="w-1/3 border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-red-500 focus:outline-none text-center"
+                  />
+                </div>
                 {errores.ci && <p className="text-red-500 text-xs mt-1">{errores.ci}</p>}
               </div>
 
