@@ -6,11 +6,11 @@ El proyecto se desarrolla bajo el marco de trabajo ágil **Scrum**, organizando 
 
 | Rol Scrum | Integrante(s) | Responsabilidades en el Proyecto |
 | :--- | :--- | :--- |
-| **Product Owner / Scrum Master** | Líder de Grupo | Priorización del Product Backlog, coordinación de sprints y control de cronograma de entregas. |
+| **Product Owner / Scrum Master** | Líder de Grupo Helen Muriel | Priorización del Product Backlog, coordinación de sprints y control de cronograma de entregas. |
 | **Analista de Sistemas** | Kimberly Mariana Peredo Bristott | Levantamiento de reglas de negocio, modelado UML, definición de historias de usuario y validación de requerimientos[cite: 4]. |
-| **Development Team (Frontend)** | Dev 2 | Maquetación e implementación de vistas de usuario, formularios de captura y manejo de alertas en interfaz. |
-| **Development Team (Backend)** | Dev-Backend | Construcción de APIs, endpoints, esquemas de bases de datos, restricciones de integridad y lógica de negocio. |
-| **QA / Testing** | Tester QA | Diseño y ejecución de matrices de prueba, pruebas de regresión e inspección de validaciones de campos. |
+| **Development Team (Frontend)** | Dev 2 Juan Jose Lizarazu| Maquetación e implementación de vistas de usuario, formularios de captura y manejo de alertas en interfaz. |
+| **Development Team (Backend)** | Dev-Backend Fabrizzio Achabal| Construcción de APIs, endpoints, esquemas de bases de datos, restricciones de integridad y lógica de negocio. |
+| **QA / Testing** | Tester QA Leonardo Olivera| Diseño y ejecución de matrices de prueba, pruebas de regresión e inspección de validaciones de campos. |
 
 ---
 
