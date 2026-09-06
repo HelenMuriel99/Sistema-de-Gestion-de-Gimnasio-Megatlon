@@ -1,26 +1,33 @@
-# Sistema-de-Gestion-de-Gimnasio-Megatlon
-Sistema integral para la administración operativa, gestión de aforos por disciplinas, control financiero y registro de asistencia en puerta para las 4 sucursales del gimnasio MEGATLÓN.
+## Metodología de Desarrollo: Scrum
+
+El proyecto se desarrolla bajo el marco de trabajo ágil **Scrum**, organizando las entregas en sprints cortos orientados a valor, con revisiones técnicas y refinamiento continuo del Product Backlog.
+
+### Roles del Equipo Scrum
+
+| Rol Scrum | Integrante(s) | Responsabilidades en el Proyecto |
+| :--- | :--- | :--- |
+| **Product Owner / Scrum Master** | Líder de Grupo | Priorización del Product Backlog, coordinación de sprints y control de cronograma de entregas. |
+| **Analista de Sistemas** | Kimberly Mariana Peredo Bristott | Levantamiento de reglas de negocio, modelado UML, definición de historias de usuario y validación de requerimientos[cite: 4]. |
+| **Development Team (Frontend)** | Dev 2 | Maquetación e implementación de vistas de usuario, formularios de captura y manejo de alertas en interfaz. |
+| **Development Team (Backend)** | Dev-Backend | Construcción de APIs, endpoints, esquemas de bases de datos, restricciones de integridad y lógica de negocio. |
+| **QA / Testing** | Tester QA | Diseño y ejecución de matrices de prueba, pruebas de regresión e inspección de validaciones de campos. |
+
 ---
-## Estructura del Proyecto
-### Fase 1: Levantamiento y Análisis Inicial
-Esta fase documenta los requerimientos del negocio y establece el marco operativo del software:
-* **Entrevistas Iniciales:** Relevamiento de reglas de negocio, disciplinas (Spinning, Zumba, Cardio, Pesas), capacidad por áreas y modalidades de atención.
-* **Especificación de Requerimientos:**
-  * Requerimientos Funcionales (RF): Gestión de inscripciones, administración de planes, reservas de cupos, tiqueo de personal y clientes, y control de morosidad.
-  * Requerimientos No Funcionales (RNF): Disponibilidad 24/7, tolerancia a fallos, seguridad en accesos (máximo 3 intentos) y auditoría de eventos.
-* **Alcances y Límites del Sistema:** Delimitación de las funcionalidades incluidas (administración multisucursal, lógica de cobros en cuotas, cálculo de retrasos a instructores) y las exclusiones explícitas (planes de entrenamiento físico, desarrollo de app móvil nativa, facturación tributaria compleja).
+
+### Cronograma de Sprints y Revisiones Técnicas
+
+| Iteración / Hito | Periodo / Fecha | Objetivos y Tareas Clave | Entregables / Resultados |
+| :--- | :--- | :--- | :--- |
+| **Sprint 1: Fase 1 (Requerimientos)** | Semanas 1 y 2 | Entrevistas con stakeholders, definición de RF/RNF y delimitación de alcances/límites[cite: 4, 5]. | Documento de Requerimientos y matriz de Alcances y Límites[cite: 4, 5]. |
+| **Sprint 2: Fase 2 (Diseño y Modelado)** | Semanas 3 y 4 | Modelado de datos relacional, diseño de casos de uso (vista cliente/sistema) e historias de usuario[cite: 4]. | Diagramas UML (PlantUML), Historias de Usuario con Criterios de Aceptación[cite: 4]. |
+| **Revisión 1 (Sprint Review / Refinamiento)** | 31/08/2026 | Auditoría interna de formularios de registro y autenticación. | Informe técnico: detección de fallas en inputs (nombres, teléfonos, edad >= 18 años) y eliminación de errores HTTP 500. |
+| **Revisión 2 (Corrección y Despliegue)** | 31/08/2026 - 03/09/2026 | Aplicación de restricciones de unicidad de CI y desarrollo de registro de clientes en recepción[cite: 4]. | Formulario de clientes operativo en panel de recepcionista e integridad de CI en base de datos[cite: 4]. |
+| **Revisión 3 (Sprint Refinement)** | 03/09/2026 | Análisis de nuevos requerimientos de negocio y casos de borde. | Informe de cambios: soporte multirrol para Administrador, separación de CI/Complemento y notificación de saldo en puerta[cite: 2, 4]. |
+
 ---
-### Fase 2: Diseño y Especificación Técnica
-Esta fase abarca la modelación de datos y la experiencia funcional del usuario final:
-* **Base de Datos:** Modelo de datos diseñado para dar soporte a la gestión de clientes, cobros, planes, sucursales y control de asistencias.
-* **Casos de Uso (Vista del Cliente):** 
-  * Modelado en UML (PlantUML) del flujo de acceso en terminales físicas de entrada.
-  * Inclusiones (`<<include>>`): Validación de intentos fallidos, verificación de solvencia/pago y débito de cupo.
-  * Extensiones (`<<extend>>`): Despliegue en pantalla del saldo de accesos restantes.
-* **Historias de Usuario (Vista del Cliente):**
-  * Especificación detallada bajo el estándar *Como... Quiero... Para...*
-  * Criterios de Aceptación (CA) para el inicio de sesión en puerta, consumo de ingresos por visita y bloqueo automático por deudas no saldadas tras 5 días de gracia.
----
-## Tecnologías y Herramientas Empleadas
-* **Modelado UML:** PlantUML / Draw.io
-* **Gestión de Versiones:** Git & GitHub
+
+### Artefactos Scrum Aplicados
+
+* **Product Backlog:** Registro centralizado de requerimientos funcionales, no funcionales e historias de usuario.
+* **Sprint Backlog:** Subconjunto de historias de usuario y correcciones asignadas por rol en cada ciclo de revisión.
+* **Incremento:** Módulos de software funcionales y versionados en el repositorio (`Git & GitHub`).
