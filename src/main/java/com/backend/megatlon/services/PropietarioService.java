@@ -39,6 +39,7 @@ public class PropietarioService {
             throw new IllegalArgumentException("Ya existe un usuario registrado con el CI: " + request.getCi());
         }
 
+        //validar que no exista un usuario con el mismo telefono
         if (usuarioRepository.existsByTelefono(request.getTelefono())) {
             throw new IllegalArgumentException("Ya existe un usuario con ese telefono: " + request.getTelefono());
         }
