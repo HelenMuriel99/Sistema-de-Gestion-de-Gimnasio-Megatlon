@@ -86,7 +86,6 @@ public class ClienteRegistroService {
                 .build();
     }
 }*/
-
 package com.backend.megatlon.services;
 
 import com.backend.megatlon.dto.ClienteResponse;

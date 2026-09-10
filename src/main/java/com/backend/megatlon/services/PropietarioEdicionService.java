@@ -75,6 +75,7 @@ public class PropietarioEdicionService {
         return EmpleadoResumenResponse.builder()
                 .id(guardado.getId())
                 .ci(guardado.getCi())
+                .complementoCi(guardado.getComplementoCi())
                 .primerNombre(guardado.getPrimerNombre())
                 .segundoNombre(guardado.getSegundoNombre())
                 .primerApellido(guardado.getPrimerApellido())

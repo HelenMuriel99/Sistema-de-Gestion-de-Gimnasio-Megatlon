@@ -1,4 +1,4 @@
-/* package com.backend.megatlon.services;
+/*package com.backend.megatlon.services;
 
 import com.backend.megatlon.dto.ClienteResponse;
 import com.backend.megatlon.dto.RegistrarClienteRequest;
@@ -84,7 +84,7 @@ public class PropietarioClienteRegistroService {
                 .estadoAcceso(clienteGuardado.getEstadoAcceso().name())
                 .build();
     }
-} */
+}*/
 
 package com.backend.megatlon.services;
 

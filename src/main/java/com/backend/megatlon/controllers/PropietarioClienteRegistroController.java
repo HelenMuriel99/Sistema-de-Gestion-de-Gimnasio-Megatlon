@@ -27,6 +27,7 @@ public class PropietarioClienteRegistroController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 }*/
+
 package com.backend.megatlon.controllers;
 
 import com.backend.megatlon.dto.ClienteResponse;

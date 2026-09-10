@@ -52,6 +52,7 @@ public class PropietarioConsultaService {
         return EmpleadoResumenResponse.builder()
                 .id(u.getId())
                 .ci(u.getCi())
+                .complementoCi(u.getComplementoCi())
                 .primerNombre(u.getPrimerNombre())
                 .segundoNombre(u.getSegundoNombre())
                 .primerApellido(u.getPrimerApellido())

@@ -1,5 +1,6 @@
 package com.backend.megatlon.dto;
 
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -24,6 +25,7 @@ public class RegistrarClienteRequest {
     private String direccion;
 
     // --- DATOS DE MEMBRESÍA ---
+    @NotNull(message = "El ID del plan es obligatorio")
     private Long planId;
 
     // Solo obligatorio si el plan seleccionado es ESPECIFICO

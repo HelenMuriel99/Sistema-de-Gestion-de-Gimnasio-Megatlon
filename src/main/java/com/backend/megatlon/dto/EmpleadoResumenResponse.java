@@ -15,6 +15,7 @@ import java.time.LocalDate;
 public class EmpleadoResumenResponse {
     private Long id;
     private String ci;
+    private String complementoCi;
     private String primerNombre;
     private String segundoNombre;
     private String primerApellido;

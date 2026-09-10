@@ -15,6 +15,7 @@ import java.time.LocalDate;
 @NoArgsConstructor
 public class RegistrarEmpleadoRequest {
     private String ci;
+    private String complementoCi;
     private String primerNombre;
     private String segundoNombre;
     private String primerApellido;

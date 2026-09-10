@@ -20,6 +20,9 @@ public class Usuario {
     @Column(nullable = false, unique = true, length = 20)
     private String ci;
 
+    @Column(name = "complemento_ci", length = 5)
+    private String complementoCi;
+
     @Column(name = "password", nullable = false, length = 255)
     private String password;
 
@@ -62,9 +65,4 @@ public class Usuario {
     @Enumerated(EnumType.STRING)
     @Column(name = "estado_acceso", nullable = false)
     private EstadoAcceso estadoAcceso;
-
-    // Agregar esta propiedad dentro de la clase Usuario:
-
-    @OneToOne(mappedBy = "cliente", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private MembresiaCliente membresia;
 }

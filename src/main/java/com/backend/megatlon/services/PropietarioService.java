@@ -64,6 +64,7 @@ public class PropietarioService {
         // 5. Construir objeto Usuario sin contraseña aún
         Usuario nuevoUsuario = Usuario.builder()
                 .ci(request.getCi())
+                .complementoCi(request.getComplementoCi())
                 .primerNombre(request.getPrimerNombre())
                 .segundoNombre(request.getSegundoNombre())
                 .primerApellido(request.getPrimerApellido())
