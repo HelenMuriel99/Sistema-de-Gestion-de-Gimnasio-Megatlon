@@ -22,6 +22,7 @@ export default function Layout() {
 
     if (user?.rol === 'PROPIETARIO') {
       baseOptions.push({ name: 'Personal', path: '/empleados', icon: <Users size={20} /> });
+      baseOptions.push({ name: 'Clientes', path: '/clientes', icon: <Users size={20} /> });
       baseOptions.push({ name: 'Membresías', path: '/membresias', icon: <Dumbbell size={20} /> });
     }
 

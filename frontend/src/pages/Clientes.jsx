@@ -1,11 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import api from '../services/api';
+import { AuthContext } from '../context/AuthContext';
 import { 
   Search, Plus, Edit, Trash2, AlertTriangle, 
   UserPlus, X, CheckCircle, Save, ShieldAlert
 } from 'lucide-react';
 
 export default function Clientes() {
+  // Obtenemos el usuario logueado para saber su rol
+  const { user } = useContext(AuthContext);
+
   // Estados para la lista y cargas
   const [clientes, setClientes] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -19,11 +23,10 @@ export default function Clientes() {
   // Estado para la ventana de Éxito al crear
   const [clienteCreadoInfo, setClienteCreadoInfo] = useState(null);
 
-  // Estado del formulario de creación
   const estadoInicialForm = {
     ci: '', primerNombre: '', segundoNombre: '', primerApellido: '', 
     segundoApellido: '', fechaNacimiento: '', genero: 'MASCULINO', 
-    telefono: '', direccion: ''
+    telefono: '', direccion: '', sucursalId: '1' // <- Agregado para el Propietario
   };
   const [nuevoCliente, setNuevoCliente] = useState(estadoInicialForm);
   const [clienteAEditar, setClienteAEditar] = useState(estadoInicialForm);
@@ -36,7 +39,12 @@ export default function Clientes() {
   const cargarClientes = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/recepcionista/consultas/clientes');
+      // El Propietario usa su propia URL para listar, filtrando por rol CLIENTE
+      const endpoint = user.rol === 'PROPIETARIO' 
+        ? '/propietario/consultas/usuarios?rol=CLIENTE' 
+        : '/recepcionista/consultas/clientes';
+
+      const response = await api.get(endpoint);
       setClientes(response.data);
       setError(null);
     } catch (err) {
@@ -51,17 +59,22 @@ export default function Clientes() {
     e.preventDefault();
     setGuardando(true);
     try {
-      // Llamamos al endpoint que hizo Fabrizzio
-      await api.post('/recepcionista/clientes', nuevoCliente);
+      // Diferenciamos las rutas de creación
+      let endpoint = '';
+      if (user.rol === 'PROPIETARIO') {
+        endpoint = `/propietario/clientes?sucursalId=${nuevoCliente.sucursalId}`;
+      } else {
+        endpoint = '/recepcionista/clientes';
+      }
+
+      await api.post(endpoint, nuevoCliente);
       cargarClientes();
       
-      // En vez de cerrar el modal, mostramos la info de éxito (El backend usa el CI como clave por defecto)
       setClienteCreadoInfo({ 
         ci: nuevoCliente.ci, 
         nombre: `${nuevoCliente.primerNombre} ${nuevoCliente.primerApellido}` 
       });
       
-      // Limpiamos el formulario por detrás para la próxima vez
       setNuevoCliente(estadoInicialForm);
     } catch (err) {
       alert("Error al registrar: " + (err.response?.data?.message || err.message));
@@ -74,7 +87,11 @@ export default function Clientes() {
     e.preventDefault();
     setGuardando(true);
     try {
-      await api.put(`/recepcionista/gestion/clientes/${clienteAEditar.ci}`, clienteAEditar);
+      const endpoint = user.rol === 'PROPIETARIO'
+        ? `/propietario/gestion/clientes/${clienteAEditar.ci}`
+        : `/recepcionista/gestion/clientes/${clienteAEditar.ci}`;
+
+      await api.put(endpoint, clienteAEditar);
       cargarClientes();
       setModalEditarOpen(false);
     } catch (err) {
@@ -88,7 +105,11 @@ export default function Clientes() {
     if (!clienteAEliminar) return;
     setGuardando(true);
     try {
-      await api.delete(`/recepcionista/gestion/clientes/${clienteAEliminar.ci}`);
+      const endpoint = user.rol === 'PROPIETARIO'
+        ? `/propietario/gestion/clientes/${clienteAEliminar.ci}`
+        : `/recepcionista/gestion/clientes/${clienteAEliminar.ci}`;
+
+      await api.delete(endpoint);
       setClienteAEliminar(null);
       cargarClientes();
     } catch (err) {
@@ -101,7 +122,6 @@ export default function Clientes() {
   return (
     <div className="space-y-6">
       
-      {/* Cabecera */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-800">Gestión de Clientes</h1>
@@ -119,7 +139,6 @@ export default function Clientes() {
         </button>
       </div>
 
-      {/* Tarjeta con la Tabla */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         
         <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
@@ -144,6 +163,7 @@ export default function Clientes() {
                   <th className="px-6 py-4">Cliente</th>
                   <th className="px-6 py-4">CI / Usuario</th>
                   <th className="px-6 py-4">Teléfono</th>
+                  {user.rol === 'PROPIETARIO' && <th className="px-6 py-4">Sucursal</th>}
                   <th className="px-6 py-4">Estado</th>
                   <th className="px-6 py-4 text-right">Acciones</th>
                 </tr>
@@ -157,6 +177,12 @@ export default function Clientes() {
                     </td>
                     <td className="px-6 py-4 font-mono text-gray-500">{cli.ci}</td>
                     <td className="px-6 py-4">{cli.telefono}</td>
+                    
+                    {/* El Propietario necesita ver de qué sucursal es el cliente */}
+                    {user.rol === 'PROPIETARIO' && (
+                      <td className="px-6 py-4 font-medium text-gray-600">{cli.sucursalNombre}</td>
+                    )}
+
                     <td className="px-6 py-4">
                       <span className={`flex items-center gap-1 font-medium ${cli.estadoAcceso === 'ACTIVO' ? 'text-green-600' : 'text-red-500'}`}>
                         <div className={`w-2 h-2 rounded-full ${cli.estadoAcceso === 'ACTIVO' ? 'bg-green-500' : 'bg-red-500'}`}></div>
@@ -188,7 +214,7 @@ export default function Clientes() {
                   </tr>
                 ))}
                 {clientes.length === 0 && (
-                  <tr><td colSpan="5" className="px-6 py-8 text-center text-gray-500">No hay clientes inscritos en esta sucursal.</td></tr>
+                  <tr><td colSpan="6" className="px-6 py-8 text-center text-gray-500">No hay clientes inscritos.</td></tr>
                 )}
               </tbody>
             </table>
@@ -210,7 +236,6 @@ export default function Clientes() {
               }}><X className="text-gray-400 hover:text-gray-600"/></button>
             </div>
 
-            {/* Si el cliente se creó, mostramos la pantalla de éxito. Si no, el formulario */}
             {clienteCreadoInfo ? (
               <div className="p-8 text-center space-y-4">
                 <div className="w-16 h-16 bg-green-100 text-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -259,6 +284,25 @@ export default function Clientes() {
                   </div>
                   
                   <div className="md:col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">Dirección *</label><input className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-megatlon-primary" value={nuevoCliente.direccion} onChange={e => setNuevoCliente({...nuevoCliente, direccion: e.target.value})} required/></div>
+                  
+                  {/* Selector de Sucursal EXCLUSIVO para el PROPIETARIO */}
+                  {user.rol === 'PROPIETARIO' && (
+                    <div className="md:col-span-2 bg-gray-50 p-4 border border-gray-200 rounded-lg">
+                      <label className="block text-sm font-bold text-megatlon-primary mb-1">Asignar a Sucursal *</label>
+                      <select 
+                        className="w-full p-2 border border-gray-300 rounded bg-white focus:ring-2 focus:ring-megatlon-primary" 
+                        value={nuevoCliente.sucursalId} 
+                        onChange={e => setNuevoCliente({...nuevoCliente, sucursalId: e.target.value})}
+                      >
+                        <option value="1">1 - Sede Norte</option>
+                        <option value="2">2 - Sede Sur</option>
+                        <option value="3">3 - Sede Este</option>
+                        <option value="4">4 - Sede Oeste</option>
+                      </select>
+                      <p className="text-xs text-gray-500 mt-1">Como Propietario, puedes elegir a qué sede pertenece este cliente.</p>
+                    </div>
+                  )}
+
                 </div>
                 
                 <div className="mt-6 flex justify-end gap-3">
