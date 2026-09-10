@@ -163,25 +163,36 @@ export default function ModalNuevoEmpleado({ isOpen, onClose, onSuccess }) {
       
     } catch (err) {
       console.error(err);
-      
-      const serverMessage = err.response?.data?.message || err.response?.data || '';
+
+      const status = err.response?.status;
+      const serverMessage = err.response?.data?.message || '';
       const msgLower = typeof serverMessage === 'string' ? serverMessage.toLowerCase() : '';
 
-      // <-- DETECCIÓN DE TELÉFONO DUPLICADO Y POP-UP -->
-      if (msgLower.includes('telefono') || msgLower.includes('teléfono') || msgLower.includes('duplicado')) {
-        const errorTelefono = 'Este número de teléfono ya se encuentra registrado por otro empleado.';
-        alert(errorTelefono); // Aparece la ventana emergente
-        setError(errorTelefono); // También se muestra en el banner rojo
-      } 
-      // Verificación de CI duplicado
-      else if (err.response?.status === 409 || msgLower.includes('ci')) {
+      // Teléfono duplicado (409 desde PropietarioService)
+      if (status === 409 && (msgLower.includes('telefono') || msgLower.includes('teléfono'))) {
+        setError('Ya hay un empleado registrado con ese número de teléfono.');
+      }
+      // CI duplicado (409 desde PropietarioService)
+      else if (status === 409 && msgLower.includes('ci')) {
         setError('Ya existe un usuario o empleado registrado con este Carnet de Identidad (CI).');
-      } 
-      // Otros errores del servidor
-      else if (typeof serverMessage === 'string' && serverMessage) {
+      }
+      // Otro conflicto de negocio (rol inválido, sucursal inactiva, etc.)
+      else if (status === 409 && serverMessage) {
         setError(serverMessage);
-      } 
-      // Error por defecto
+      }
+      // Sin permisos (rol distinto de PROPIETARIO)
+      else if (status === 403) {
+        setError('No tienes permisos para registrar empleados. Verifica tu rol de usuario.');
+      }
+      // Sesión inválida o expirada
+      else if (status === 401) {
+        setError('Tu sesión expiró o no es válida. Vuelve a iniciar sesión.');
+      }
+      // Cualquier otro mensaje que sí venga del servidor
+      else if (serverMessage) {
+        setError(serverMessage);
+      }
+      // Error por defecto (ej. sin conexión al backend)
       else {
         setError('Error al registrar el empleado. Revisa la conexión o tus permisos.');
       }
@@ -309,25 +320,30 @@ export default function ModalNuevoEmpleado({ isOpen, onClose, onSuccess }) {
               
               {/* <-- MODIFICACIÓN UI PARA EL CI + COMPLEMENTO --> */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Carnet de Identidad (CI) *</label>
                 <div className="flex gap-2">
-                  <input 
-                    type="text" 
-                    name="ci" 
-                    value={formData.ci} 
-                    onChange={handleChange} 
-                    placeholder="Ej. 1234567"
-                    className={`w-2/3 border rounded-lg p-2 focus:ring-2 focus:outline-none ${errores.ci ? 'border-red-500 focus:ring-red-200' : 'border-gray-300 focus:ring-red-500'}`} 
-                  />
-                  <input 
-                    type="text" 
-                    name="complementoCi" 
-                    value={formData.complementoCi} 
-                    onChange={handleChange} 
-                    placeholder="Ej. AB"
-                    title="Complemento"
-                    className="w-1/3 border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-red-500 focus:outline-none text-center"
-                  />
+                  <div className="w-2/3">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Carnet de Identidad (CI) *</label>
+                    <input 
+                      type="text" 
+                      name="ci" 
+                      value={formData.ci} 
+                      onChange={handleChange} 
+                      placeholder="Ej. 1234567"
+                      className={`w-full border rounded-lg p-2 focus:ring-2 focus:outline-none ${errores.ci ? 'border-red-500 focus:ring-red-200' : 'border-gray-300 focus:ring-red-500'}`} 
+                    />
+                  </div>
+                  <div className="w-1/3">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Complemento</label>
+                    <input 
+                      type="text" 
+                      name="complementoCi" 
+                      value={formData.complementoCi} 
+                      onChange={handleChange} 
+                      placeholder="Ej. AB"
+                      title="Complemento"
+                      className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-red-500 focus:outline-none text-center"
+                    />
+                  </div>
                 </div>
                 {errores.ci && <p className="text-red-500 text-xs mt-1">{errores.ci}</p>}
               </div>

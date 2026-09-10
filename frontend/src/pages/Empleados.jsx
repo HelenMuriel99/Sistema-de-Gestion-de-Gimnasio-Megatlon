@@ -134,7 +134,12 @@ export default function Empleados() {
                       <div className="font-bold text-gray-800">{emp.nombreCompleto}</div>
                       <div className="text-xs text-gray-400">{emp.telefono}</div>
                     </td>
-                    <td className="px-6 py-4">{emp.ci}</td>
+                    <td className="px-6 py-4">
+                      {emp.ci}
+                      {emp.complementoCi && (
+                        <span className="text-gray-400"> - {emp.complementoCi}</span>
+                      )}
+                    </td>
                     <td className="px-6 py-4">
                       <span className={`px-3 py-1 rounded-full text-xs font-bold ${getBadgeColor(emp.rol)}`}>
                         {emp.rol}

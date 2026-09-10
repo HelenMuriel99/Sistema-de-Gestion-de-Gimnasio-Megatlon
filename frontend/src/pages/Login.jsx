@@ -21,10 +21,7 @@ export default function Login() {
 
     try {
       // Petición al backend
-      const response = await api.post('/auth/login', { 
-        ci: ci.trim(), 
-        password 
-      });
+      const response = await api.post('/auth/login', {ci: ci.trim(), password });
       
       // Guardar token y redirigir
       login(response.data.token);
