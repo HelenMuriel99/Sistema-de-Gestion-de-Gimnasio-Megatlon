@@ -14,7 +14,16 @@ import java.util.Optional;
 public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
 
     // Consulta optimizada para cargar usuario + rol + sucursal base de una sola vez
-    @Query("SELECT u FROM Usuario u JOIN FETCH u.rol JOIN FETCH u.sucursalBase WHERE u.ci = :ci")
+    /*@Query("SELECT u FROM Usuario u JOIN FETCH u.rol JOIN FETCH u.sucursalBase WHERE u.ci = :ci")
+    Optional<Usuario> findByCiWithRelations(@Param("ci") String ci);*/
+
+    @Query("SELECT u FROM Usuario u " +
+            "LEFT JOIN FETCH u.rol " +
+            "LEFT JOIN FETCH u.sucursalBase " +
+            "LEFT JOIN FETCH u.membresia m " +
+            "LEFT JOIN FETCH m.plan " +
+            "LEFT JOIN FETCH m.disciplina " +
+            "WHERE u.ci = :ci")
     Optional<Usuario> findByCiWithRelations(@Param("ci") String ci);
 
     // Búsqueda simple

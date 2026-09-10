@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Data
@@ -27,4 +28,12 @@ public class ClienteResponse {
     private Long sucursalId;
     private String sucursalNombre;
     private String estadoAcceso;
+
+    // Detalle Membresía
+    private String planNombre;
+    private String tipoPlan;
+    private BigDecimal planPrecio;
+    private String disciplinaNombre; // Muestra "Todas" si es FULL/SESION
+    private LocalDate fechaInicioMembresia;
+    private LocalDate fechaFinMembresia;
 }

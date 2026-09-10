@@ -22,4 +22,10 @@ public class RegistrarClienteRequest {
     private String genero;
     private String telefono;
     private String direccion;
+
+    // --- DATOS DE MEMBRESÍA ---
+    private Long planId;
+
+    // Solo obligatorio si el plan seleccionado es ESPECIFICO
+    private Long disciplinaId;
 }
