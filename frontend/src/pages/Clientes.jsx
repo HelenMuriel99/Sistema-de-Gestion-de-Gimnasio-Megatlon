@@ -7,11 +7,12 @@ import {
 } from 'lucide-react';
 
 export default function Clientes() {
-  // Obtenemos el usuario logueado para saber su rol
   const { user } = useContext(AuthContext);
 
   // Estados para la lista y cargas
   const [clientes, setClientes] = useState([]);
+  const [planes, setPlanes] = useState([]);
+  const [disciplinas, setDisciplinas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -23,33 +24,47 @@ export default function Clientes() {
   // Estado para la ventana de Éxito al crear
   const [clienteCreadoInfo, setClienteCreadoInfo] = useState(null);
 
+  // Agregamos planId y disciplinaId al estado inicial
   const estadoInicialForm = {
     ci: '', primerNombre: '', segundoNombre: '', primerApellido: '', 
     segundoApellido: '', fechaNacimiento: '', genero: 'MASCULINO', 
-    telefono: '', direccion: '', sucursalId: '1' // <- Agregado para el Propietario
+    telefono: '', direccion: '', sucursalId: '1',
+    planId: '', disciplinaId: ''
   };
   const [nuevoCliente, setNuevoCliente] = useState(estadoInicialForm);
   const [clienteAEditar, setClienteAEditar] = useState(estadoInicialForm);
   const [guardando, setGuardando] = useState(false);
 
   useEffect(() => {
-    cargarClientes();
+    cargarDatos();
   }, []);
 
-  const cargarClientes = async () => {
+  const cargarDatos = async () => {
     try {
       setLoading(true);
-      // El Propietario usa su propia URL para listar, filtrando por rol CLIENTE
-      const endpoint = user.rol === 'PROPIETARIO' 
+      
+      // 1. Cargar la lista de clientes
+      const endpointClientes = user.rol === 'PROPIETARIO' 
         ? '/propietario/consultas/usuarios?rol=CLIENTE' 
         : '/recepcionista/consultas/clientes';
+      
+      const resClientes = await api.get(endpointClientes);
+      setClientes(resClientes.data);
 
-      const response = await api.get(endpoint);
-      setClientes(response.data);
+      // 2. Cargar el catálogo para el formulario de inscripción
+      try {
+        const resPlanes = await api.get('/propietario/catalogo/planes');
+        const resDisciplinas = await api.get('/propietario/catalogo/disciplinas');
+        setPlanes(resPlanes.data);
+        setDisciplinas(resDisciplinas.data);
+      } catch (catErr) {
+        console.warn("Fallo al cargar catálogo. Si eres Recepcionista, asegúrate de que Fabrizzio quitó la restricción.", catErr);
+      }
+
       setError(null);
     } catch (err) {
       console.error(err);
-      setError("No se pudieron cargar los clientes. Revisa tu conexión.");
+      setError("No se pudieron cargar los datos. Revisa tu conexión.");
     } finally {
       setLoading(false);
     }
@@ -59,7 +74,6 @@ export default function Clientes() {
     e.preventDefault();
     setGuardando(true);
     try {
-      // Diferenciamos las rutas de creación
       let endpoint = '';
       if (user.rol === 'PROPIETARIO') {
         endpoint = `/propietario/clientes?sucursalId=${nuevoCliente.sucursalId}`;
@@ -67,8 +81,15 @@ export default function Clientes() {
         endpoint = '/recepcionista/clientes';
       }
 
-      await api.post(endpoint, nuevoCliente);
-      cargarClientes();
+      // Preparamos el payload convirtiendo los IDs a números (y manejando nulos)
+      const payload = {
+        ...nuevoCliente,
+        planId: parseInt(nuevoCliente.planId),
+        disciplinaId: nuevoCliente.disciplinaId ? parseInt(nuevoCliente.disciplinaId) : null
+      };
+
+      await api.post(endpoint, payload);
+      cargarDatos();
       
       setClienteCreadoInfo({ 
         ci: nuevoCliente.ci, 
@@ -88,11 +109,11 @@ export default function Clientes() {
     setGuardando(true);
     try {
       const endpoint = user.rol === 'PROPIETARIO'
-        ? `/propietario/gestion/clientes/${clienteAEditar.ci}`
+        ? `/propietario/gestion/usuarios/${clienteAEditar.ci}`
         : `/recepcionista/gestion/clientes/${clienteAEditar.ci}`;
 
       await api.put(endpoint, clienteAEditar);
-      cargarClientes();
+      cargarDatos();
       setModalEditarOpen(false);
     } catch (err) {
       alert("Error al actualizar: " + (err.response?.data?.message || err.message));
@@ -111,13 +132,17 @@ export default function Clientes() {
 
       await api.delete(endpoint);
       setClienteAEliminar(null);
-      cargarClientes();
+      cargarDatos();
     } catch (err) {
       alert(err.response?.data?.message || 'Error al desactivar cliente');
     } finally {
       setGuardando(false);
     }
   };
+
+  // Buscamos el plan seleccionado para saber si requiere disciplina
+  const planSeleccionadoObj = planes.find(p => p.id === parseInt(nuevoCliente.planId));
+  const requiereDisciplina = planSeleccionadoObj?.tipoPlan === 'ESPECIFICO';
 
   return (
     <div className="space-y-6">
@@ -140,7 +165,6 @@ export default function Clientes() {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        
         <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
           <div className="relative w-full max-w-md">
             <input 
@@ -178,7 +202,6 @@ export default function Clientes() {
                     <td className="px-6 py-4 font-mono text-gray-500">{cli.ci}</td>
                     <td className="px-6 py-4">{cli.telefono}</td>
                     
-                    {/* El Propietario necesita ver de qué sucursal es el cliente */}
                     {user.rol === 'PROPIETARIO' && (
                       <td className="px-6 py-4 font-medium text-gray-600">{cli.sucursalNombre}</td>
                     )}
@@ -242,10 +265,10 @@ export default function Clientes() {
                   <CheckCircle size={32} />
                 </div>
                 <h3 className="text-2xl font-bold text-gray-800">¡Inscripción Exitosa!</h3>
-                <p className="text-gray-600">El cliente <strong>{clienteCreadoInfo.nombre}</strong> ha sido registrado.</p>
+                <p className="text-gray-600">El cliente <strong>{clienteCreadoInfo.nombre}</strong> ha sido registrado y su membresía está activa.</p>
                 
                 <div className="bg-gray-50 p-6 rounded-lg border border-gray-200 mt-4 inline-block text-left shadow-sm">
-                  <p className="text-sm text-gray-500 mb-3 font-medium">Credenciales de acceso para la App del Cliente:</p>
+                  <p className="text-sm text-gray-500 mb-3 font-medium">Credenciales de acceso para la App:</p>
                   <p className="font-mono text-lg text-gray-800 mb-1"><strong>Usuario (CI):</strong> {clienteCreadoInfo.ci}</p>
                   <p className="font-mono text-lg text-megatlon-primary"><strong>Contraseña:</strong> {clienteCreadoInfo.ci}</p>
                   <p className="text-xs text-red-500 mt-3 font-medium italic">* Por política del gimnasio, su CI es la contraseña por defecto.</p>
@@ -264,7 +287,10 @@ export default function Clientes() {
                 </div>
               </div>
             ) : (
-              <form onSubmit={handleCrearCliente} className="p-6 overflow-y-auto max-h-[70vh]">
+              <form onSubmit={handleCrearCliente} className="p-6 overflow-y-auto max-h-[70vh] space-y-6">
+                
+                {/* DATOS PERSONALES */}
+                <h3 className="font-bold text-gray-700 border-b pb-2">Datos Personales</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div><label className="block text-sm font-medium text-gray-700 mb-1">CI *</label><input className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-megatlon-primary" value={nuevoCliente.ci} onChange={e => setNuevoCliente({...nuevoCliente, ci: e.target.value})} required/></div>
                   <div><label className="block text-sm font-medium text-gray-700 mb-1">Fecha Nacimiento *</label><input type="date" className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-megatlon-primary" value={nuevoCliente.fechaNacimiento} onChange={e => setNuevoCliente({...nuevoCliente, fechaNacimiento: e.target.value})} required/></div>
@@ -284,11 +310,46 @@ export default function Clientes() {
                   </div>
                   
                   <div className="md:col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">Dirección *</label><input className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-megatlon-primary" value={nuevoCliente.direccion} onChange={e => setNuevoCliente({...nuevoCliente, direccion: e.target.value})} required/></div>
-                  
-                  {/* Selector de Sucursal EXCLUSIVO para el PROPIETARIO */}
+                </div>
+
+                {/* MEMBRESÍA OBLIGATORIA */}
+                <h3 className="font-bold text-gray-700 border-b pb-2 pt-4">Plan de Membresía Inicial</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-4 border border-gray-200 rounded-lg">
+                  <div>
+                    <label className="block text-sm font-bold text-megatlon-primary mb-1">Seleccionar Plan *</label>
+                    <select 
+                      required
+                      className="w-full p-2 border border-gray-300 rounded bg-white focus:ring-2 focus:ring-megatlon-primary" 
+                      value={nuevoCliente.planId} 
+                      onChange={e => setNuevoCliente({...nuevoCliente, planId: e.target.value, disciplinaId: ''})}
+                    >
+                      <option value="">-- Elige un Plan --</option>
+                      {planes.map(p => (
+                        <option key={p.id} value={p.id}>{p.nombre} (Bs. {p.precio})</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {requiereDisciplina && (
+                    <div>
+                      <label className="block text-sm font-bold text-megatlon-primary mb-1">Seleccionar Disciplina *</label>
+                      <select 
+                        required
+                        className="w-full p-2 border border-gray-300 rounded bg-white focus:ring-2 focus:ring-megatlon-primary" 
+                        value={nuevoCliente.disciplinaId} 
+                        onChange={e => setNuevoCliente({...nuevoCliente, disciplinaId: e.target.value})}
+                      >
+                        <option value="">-- Elige la Disciplina --</option>
+                        {disciplinas.map(d => (
+                          <option key={d.id} value={d.id}>{d.nombre}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
                   {user.rol === 'PROPIETARIO' && (
-                    <div className="md:col-span-2 bg-gray-50 p-4 border border-gray-200 rounded-lg">
-                      <label className="block text-sm font-bold text-megatlon-primary mb-1">Asignar a Sucursal *</label>
+                    <div className="md:col-span-2 mt-2">
+                      <label className="block text-sm font-bold text-gray-800 mb-1">Asignar a Sucursal *</label>
                       <select 
                         className="w-full p-2 border border-gray-300 rounded bg-white focus:ring-2 focus:ring-megatlon-primary" 
                         value={nuevoCliente.sucursalId} 
@@ -299,16 +360,14 @@ export default function Clientes() {
                         <option value="3">3 - Sede Este</option>
                         <option value="4">4 - Sede Oeste</option>
                       </select>
-                      <p className="text-xs text-gray-500 mt-1">Como Propietario, puedes elegir a qué sede pertenece este cliente.</p>
                     </div>
                   )}
-
                 </div>
                 
-                <div className="mt-6 flex justify-end gap-3">
+                <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-gray-100">
                   <button type="button" onClick={() => setModalNuevoOpen(false)} className="px-4 py-2 bg-gray-100 rounded hover:bg-gray-200">Cancelar</button>
-                  <button type="submit" disabled={guardando} className="px-6 py-2 bg-megatlon-primary hover:bg-red-700 text-white rounded flex items-center gap-2 disabled:opacity-50">
-                    <Save size={18}/> {guardando ? 'Guardando...' : 'Registrar Cliente'}
+                  <button type="submit" disabled={guardando || !nuevoCliente.planId} className="px-6 py-2 bg-megatlon-primary hover:bg-red-700 text-white rounded flex items-center gap-2 disabled:opacity-50">
+                    <Save size={18}/> {guardando ? 'Guardando...' : 'Inscribir y Vender Plan'}
                   </button>
                 </div>
               </form>
