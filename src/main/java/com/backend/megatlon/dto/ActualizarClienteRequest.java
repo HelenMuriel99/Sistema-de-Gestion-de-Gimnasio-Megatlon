@@ -20,4 +20,7 @@ public class ActualizarClienteRequest {
     private String genero;
     private String telefono;
     private String direccion;
+    // Campos opcionales para corregir/actualizar el plan
+    private Long planId;
+    private Long disciplinaId;
 }

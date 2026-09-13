@@ -77,18 +77,25 @@ package com.backend.megatlon.services;
 
 import com.backend.megatlon.dto.ActualizarClienteRequest;
 import com.backend.megatlon.dto.ClienteResponse;
+import com.backend.megatlon.enums.EstadoAcceso;
 import com.backend.megatlon.enums.RolNombre;
-import com.backend.megatlon.models.Usuario;
-import com.backend.megatlon.repositories.UsuarioRepository;
+import com.backend.megatlon.enums.TipoPlan;
+import com.backend.megatlon.models.*;
+import com.backend.megatlon.repositories.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDate;
 
 @Service
 @RequiredArgsConstructor
 public class ClienteEdicionService {
 
     private final UsuarioRepository usuarioRepository;
+    private final PlanRepository planRepository;
+    private final DisciplinaRepository disciplinaRepository;
+    private final MembresiaClienteRepository membresiaClienteRepository;
 
     @Transactional
     public ClienteResponse actualizarCliente(String ciCliente, ActualizarClienteRequest request, String ciEjecutor) {
@@ -101,18 +108,18 @@ public class ClienteEdicionService {
         Usuario cliente = usuarioRepository.findByCiWithRelations(ciCliente)
                 .orElseThrow(() -> new IllegalArgumentException("Cliente no encontrado con CI: " + ciCliente));
 
-        // 3. Validar que el usuario a modificar sea rol CLIENTE
+        // 3. Validar rol CLIENTE
         if (cliente.getRol().getNombreRol() != RolNombre.CLIENTE) {
             throw new IllegalArgumentException("Acción denegada: Solo se pueden editar usuarios con rol CLIENTE.");
         }
 
-        // 4. Validar pertenencia a la sucursal SOLO SI el ejecutor no es PROPIETARIO
+        // 4. Validar sucursal si el ejecutor no es PROPIETARIO
         boolean esPropietario = ejecutor.getRol().getNombreRol() == RolNombre.PROPIETARIO;
         if (!esPropietario && !cliente.getSucursalBase().getId().equals(ejecutor.getSucursalBase().getId())) {
             throw new IllegalArgumentException("Acción denegada: El cliente pertenece a otra sucursal.");
         }
 
-        // 5. Modificar campos opcionales si se envían
+        // 5. Modificar campos de datos personales si se envían
         if (request.getPrimerNombre() != null) cliente.setPrimerNombre(request.getPrimerNombre());
         if (request.getSegundoNombre() != null) cliente.setSegundoNombre(request.getSegundoNombre());
         if (request.getPrimerApellido() != null) cliente.setPrimerApellido(request.getPrimerApellido());
@@ -124,11 +131,43 @@ public class ClienteEdicionService {
 
         Usuario guardado = usuarioRepository.save(cliente);
 
-        // 6. Mapear y retornar respuesta
+        // 6. Actualización/Edición Opcional de Plan y Membresía
+        MembresiaCliente membresia = membresiaClienteRepository.findByClienteIdWithRelations(guardado.getId())
+                .orElse(MembresiaCliente.builder().cliente(guardado).build());
+
+        if (request.getPlanId() != null) {
+            Plan nuevoPlan = planRepository.findById(request.getPlanId())
+                    .orElseThrow(() -> new IllegalArgumentException("Plan no encontrado con ID: " + request.getPlanId()));
+
+            Disciplina nuevaDisciplina = null;
+            if (nuevoPlan.getTipoPlan() == TipoPlan.ESPECIFICO) {
+                if (request.getDisciplinaId() == null) {
+                    throw new IllegalArgumentException("Debe seleccionar una disciplina para el plan ESPECIFICO.");
+                }
+                nuevaDisciplina = disciplinaRepository.findById(request.getDisciplinaId())
+                        .orElseThrow(() -> new IllegalArgumentException("Disciplina no encontrada con ID: " + request.getDisciplinaId()));
+            }
+
+            LocalDate hoy = LocalDate.now();
+            LocalDate fechaFin = nuevoPlan.getTipoPlan() == TipoPlan.SESION ? hoy : hoy.plusDays(nuevoPlan.getDuracionDias());
+
+            membresia.setPlan(nuevoPlan);
+            membresia.setDisciplina(nuevaDisciplina);
+            membresia.setFechaInicio(hoy);
+            membresia.setFechaFin(fechaFin);
+            membresia.setEstadoMembresia(EstadoAcceso.ACTIVO);
+
+            membresiaClienteRepository.save(membresia);
+        }
+
+        // 7. Mapear y retornar respuesta completa
         String nombreCompleto = (guardado.getPrimerNombre() + " " +
                 (guardado.getSegundoNombre() != null ? guardado.getSegundoNombre() + " " : "") +
                 guardado.getPrimerApellido() + " " +
                 (guardado.getSegundoApellido() != null ? guardado.getSegundoApellido() : "")).trim();
+
+        Plan planActual = membresia.getPlan();
+        Disciplina disciplinaActual = membresia.getDisciplina();
 
         return ClienteResponse.builder()
                 .id(guardado.getId())
@@ -146,6 +185,12 @@ public class ClienteEdicionService {
                 .sucursalId(guardado.getSucursalBase().getId())
                 .sucursalNombre(guardado.getSucursalBase().getNombre())
                 .estadoAcceso(guardado.getEstadoAcceso().name())
+                .planNombre(planActual != null ? planActual.getNombre() : null)
+                .tipoPlan(planActual != null ? planActual.getTipoPlan().name() : null)
+                .planPrecio(planActual != null ? planActual.getPrecio() : null)
+                .disciplinaNombre(disciplinaActual != null ? disciplinaActual.getNombre() : (planActual != null ? "TODAS LAS DISCIPLINAS" : null))
+                .fechaInicioMembresia(membresia.getFechaInicio())
+                .fechaFinMembresia(membresia.getFechaFin())
                 .build();
     }
 }
