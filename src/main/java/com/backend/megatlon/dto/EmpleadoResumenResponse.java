@@ -31,4 +31,5 @@ public class EmpleadoResumenResponse {
     private Integer intentosFallidos;
     private String estadoAcceso;
     private BigDecimal salarioFijo;
+
 }
