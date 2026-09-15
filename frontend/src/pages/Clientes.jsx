@@ -9,20 +9,16 @@ import {
 export default function Clientes() {
   const { user } = useContext(AuthContext);
 
-  // Estados para la lista y cargas
   const [clientes, setClientes] = useState([]);
   const [planes, setPlanes] = useState([]);
   const [disciplinas, setDisciplinas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [diagnostico, setDiagnostico] = useState(""); // <-- NUEVO: Para ver qué pasa con el catálogo
+  const [diagnostico, setDiagnostico] = useState(""); 
 
-  // Estados para Modales
   const [modalNuevoOpen, setModalNuevoOpen] = useState(false);
   const [modalEditarOpen, setModalEditarOpen] = useState(false);
   const [clienteAEliminar, setClienteAEliminar] = useState(null);
-  
-  // Estado para la ventana de Éxito al crear
   const [clienteCreadoInfo, setClienteCreadoInfo] = useState(null);
 
   const estadoInicialForm = {
@@ -33,6 +29,7 @@ export default function Clientes() {
   };
   const [nuevoCliente, setNuevoCliente] = useState(estadoInicialForm);
   const [clienteAEditar, setClienteAEditar] = useState(estadoInicialForm);
+  const [errores, setErrores] = useState({});
   const [guardando, setGuardando] = useState(false);
 
   useEffect(() => {
@@ -53,72 +50,115 @@ export default function Clientes() {
       const resClientes = await api.get(endpointClientes);
       setClientes(resClientes.data);
 
-      // 2. Cargar Catálogo (Planes y Disciplinas)
+      // 2. Cargar Catálogo de Planes y Disciplinas (Rutas separadas por Rol)
       try {
-        const endpointPlanes = user.rol === 'PROPIETARIO' 
-          ? '/propietario/catalogo/planes' 
-          : '/recepcionista/catalogo/planes';
+        const baseCatUrl = user.rol === 'PROPIETARIO' 
+          ? '/propietario/catalogo' 
+          : '/recepcionista/catalogo';
           
-        const endpointDisciplinas = user.rol === 'PROPIETARIO' 
-          ? '/propietario/catalogo/disciplinas' 
-          : '/recepcionista/catalogo/disciplinas';
-          
-        const resPlanes = await api.get(endpointPlanes);
-        const resDisciplinas = await api.get(endpointDisciplinas);
-        
-        console.log("Respuesta Planes:", resPlanes.data); // RAYOS X
+        const resPlanes = await api.get(`${baseCatUrl}/planes`);
+        const resDisciplinas = await api.get(`${baseCatUrl}/disciplinas`);
         
         setPlanes(resPlanes.data);
         setDisciplinas(resDisciplinas.data);
 
-        // Si viene vacío de la base de datos, te avisamos
-        if (resPlanes.data.length === 0) {
-          setDiagnostico("La base de datos respondió correctamente, pero NO HAY PLANES registrados. Usa Postman para crearlos.");
-        }
       } catch (catErr) {
-        console.error("Error del catálogo:", catErr.response || catErr); // RAYOS X
+        console.error("Error del catálogo:", catErr);
         if (catErr.response && catErr.response.status === 403) {
-          setDiagnostico("Error 403: El backend te bloqueó el acceso al Catálogo. Verifica los permisos de Spring Security.");
-        } else {
-          setDiagnostico("Fallo de red al intentar traer los planes. ¿El backend está encendido en el puerto 8080?");
+          setDiagnostico("Error 403: Sin acceso al Catálogo de Planes.");
         }
       }
 
     } catch (err) {
-      console.error("Error cargando clientes:", err.response || err);
+      console.error("Error cargando clientes:", err);
       setError("No se pudieron cargar los datos de la tabla. Revisa tu conexión.");
     } finally {
       setLoading(false);
     }
   };
 
+  const handleChangeNuevoCliente = (e) => {
+    const { name, value } = e.target;
+    let valorLimpio = value;
+
+    // Filtros en tiempo real 
+    if (name === 'ci' || name === 'telefono') {
+      valorLimpio = value.replace(/\D/g, ''); // Solo números
+    } else if (name === 'primerNombre' || name === 'segundoNombre' || name === 'primerApellido' || name === 'segundoApellido') {
+      valorLimpio = value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, ''); // Solo letras
+    }
+
+    setNuevoCliente(prev => ({ ...prev, [name]: valorLimpio }));
+
+    // Limpia el error si el usuario empieza a escribir
+    if (errores[name]) {
+      setErrores(prev => ({ ...prev, [name]: null }));
+    }
+  };
+
+  const validarFormulario = () => {
+    const nuevosErrores = {};
+    const soloLetras = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/;
+
+    if (!nuevoCliente.primerNombre.trim()) nuevosErrores.primerNombre = 'Obligatorio';
+    else if (!soloLetras.test(nuevoCliente.primerNombre)) nuevosErrores.primerNombre = 'Solo letras';
+
+    if (!nuevoCliente.primerApellido.trim()) nuevosErrores.primerApellido = 'Obligatorio';
+    else if (!soloLetras.test(nuevoCliente.primerApellido)) nuevosErrores.primerApellido = 'Solo letras';
+
+    if (!nuevoCliente.ci) nuevosErrores.ci = 'Obligatorio';
+    else if (!/^\d{5,10}$/.test(nuevoCliente.ci)) nuevosErrores.ci = 'Debe tener entre 5 y 10 dígitos';
+
+    if (!nuevoCliente.telefono) nuevosErrores.telefono = 'Obligatorio';
+    else if (!/^[467]\d{7}$/.test(nuevoCliente.telefono)) nuevosErrores.telefono = 'Ingrese un número válido de 8 dígitos';
+
+    if (!nuevoCliente.fechaNacimiento) {
+      nuevosErrores.fechaNacimiento = 'Obligatoria';
+    } else {
+      const fechaNac = new Date(nuevoCliente.fechaNacimiento);
+      const hoy = new Date();
+      if (fechaNac > hoy) nuevosErrores.fechaNacimiento = 'No puede ser fecha futura';
+      else {
+        let edad = hoy.getFullYear() - fechaNac.getFullYear();
+        if (edad < 14) nuevosErrores.fechaNacimiento = 'Debe ser mayor de 14 años';
+      }
+    }
+
+    if (!nuevoCliente.direccion.trim()) nuevosErrores.direccion = 'Obligatoria';
+    if (!nuevoCliente.planId) nuevosErrores.planId = 'Seleccione un plan';
+
+    const planSeleccionado = planes.find(p => p.id === parseInt(nuevoCliente.planId));
+    if (planSeleccionado?.tipoPlan === 'ESPECIFICO' && !nuevoCliente.disciplinaId) {
+      nuevosErrores.disciplinaId = 'Seleccione la disciplina';
+    }
+
+    setErrores(nuevosErrores);
+    return Object.keys(nuevosErrores).length === 0;
+  };
+
   const handleCrearCliente = async (e) => {
     e.preventDefault();
+    if (!validarFormulario()) return;
+
     setGuardando(true);
     try {
-      let endpoint = '';
-      if (user.rol === 'PROPIETARIO') {
-        endpoint = `/propietario/clientes?sucursalId=${nuevoCliente.sucursalId}`;
-      } else {
-        endpoint = '/recepcionista/clientes';
-      }
+      const endpoint = user.rol === 'PROPIETARIO' 
+        ? `/propietario/clientes?sucursalId=${nuevoCliente.sucursalId}` 
+        : `/recepcionista/clientes`;
 
       const payload = {
-        ci: nuevoCliente.ci,
-        primerNombre: nuevoCliente.primerNombre,
-        segundoNombre: nuevoCliente.segundoNombre,
-        primerApellido: nuevoCliente.primerApellido,
-        segundoApellido: nuevoCliente.segundoApellido,
+        ci: nuevoCliente.ci.trim(),
+        primerNombre: nuevoCliente.primerNombre.trim(),
+        segundoNombre: nuevoCliente.segundoNombre.trim() || null,
+        primerApellido: nuevoCliente.primerApellido.trim(),
+        segundoApellido: nuevoCliente.segundoApellido.trim() || null,
         fechaNacimiento: nuevoCliente.fechaNacimiento,
         genero: nuevoCliente.genero,
-        telefono: nuevoCliente.telefono,
-        direccion: nuevoCliente.direccion,
-        planId: parseInt(nuevoCliente.planId)
+        telefono: nuevoCliente.telefono.trim(),
+        direccion: nuevoCliente.direccion.trim(),
+        planId: parseInt(nuevoCliente.planId),
+        disciplinaId: nuevoCliente.disciplinaId ? parseInt(nuevoCliente.disciplinaId) : null
       };
-
-      if (nuevoCliente.disciplinaId) {
-        payload.disciplinaId = parseInt(nuevoCliente.disciplinaId);
-      }
 
       await api.post(endpoint, payload);
       cargarDatos();
@@ -130,8 +170,16 @@ export default function Clientes() {
       
       setNuevoCliente(estadoInicialForm);
     } catch (err) {
-      console.error("Error al registrar:", err.response || err);
-      alert("Error al registrar: " + (err.response?.data?.message || err.message));
+      const status = err.response?.status;
+      const msg = err.response?.data?.message || '';
+      
+      if (status === 409 && msg.toLowerCase().includes('ci')) {
+        alert("Error: Este CI ya está registrado en el sistema.");
+      } else if (status === 409 && msg.toLowerCase().includes('telefono')) {
+        alert("Error: Este Teléfono ya está registrado.");
+      } else {
+        alert("Error al registrar: " + (msg || err.message));
+      }
     } finally {
       setGuardando(false);
     }
@@ -169,7 +217,7 @@ export default function Clientes() {
     setGuardando(true);
     try {
       const endpoint = user.rol === 'PROPIETARIO'
-        ? `/propietario/gestion/clientes/${clienteAEliminar.ci}`
+        ? `/propietario/gestion/usuarios/${clienteAEliminar.ci}`
         : `/recepcionista/gestion/clientes/${clienteAEliminar.ci}`;
 
       await api.delete(endpoint);
@@ -195,6 +243,7 @@ export default function Clientes() {
         </div>
         <button 
           onClick={() => {
+            setErrores({});
             setClienteCreadoInfo(null);
             setModalNuevoOpen(true);
           }}
@@ -205,7 +254,6 @@ export default function Clientes() {
         </button>
       </div>
 
-      {/* AVISO DIAGNÓSTICO EN PANTALLA */}
       {diagnostico && (
         <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded shadow-sm flex items-start gap-3">
           <AlertCircle className="text-yellow-500 mt-0.5" size={20} />
@@ -236,7 +284,8 @@ export default function Clientes() {
                   <th className="px-6 py-4">Cliente</th>
                   <th className="px-6 py-4">CI / Usuario</th>
                   <th className="px-6 py-4">Teléfono</th>
-                  {user.rol === 'PROPIETARIO' && <th className="px-6 py-4">Sucursal</th>}
+                  <th className="px-6 py-4">Plan Actual</th>
+                  {user?.rol === 'PROPIETARIO' && <th className="px-6 py-4">Sucursal</th>}
                   <th className="px-6 py-4">Estado</th>
                   <th className="px-6 py-4 text-right">Acciones</th>
                 </tr>
@@ -251,7 +300,18 @@ export default function Clientes() {
                     <td className="px-6 py-4 font-mono text-gray-500">{cli.ci}</td>
                     <td className="px-6 py-4">{cli.telefono}</td>
                     
-                    {user.rol === 'PROPIETARIO' && (
+                    {/* NUEVA COLUMNA DE PLAN REQUERIDA POR FABRIZZIO */}
+                    <td className="px-6 py-4 font-medium text-gray-700">
+                      {cli.planNombre ? (
+                        <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded text-xs border border-blue-100">
+                          {cli.planNombre}
+                        </span>
+                      ) : (
+                        <span className="text-gray-400 italic text-xs">Sin plan</span>
+                      )}
+                    </td>
+
+                    {user?.rol === 'PROPIETARIO' && (
                       <td className="px-6 py-4 font-medium text-gray-600">{cli.sucursalNombre}</td>
                     )}
 
@@ -268,13 +328,13 @@ export default function Clientes() {
                           setModalEditarOpen(true);
                         }} 
                         className="text-blue-500 hover:text-blue-700 p-1 mx-1 transition-colors" 
-                        title="Editar"
+                        title="Editar Contacto"
                       >
                         <Edit size={18} />
                       </button>
                       
                       {cli.estadoAcceso === 'INACTIVO' ? (
-                        <button onClick={() => alert("Reactivar cliente: Pendiente de endpoint en Backend")} className="text-green-500 hover:text-green-700 p-1 mx-1 transition-colors" title="Reactivar">
+                        <button onClick={() => alert("Pendiente de endpoint de reactivación")} className="text-green-500 hover:text-green-700 p-1 mx-1 transition-colors" title="Reactivar">
                           <CheckCircle size={18} />
                         </button>
                       ) : (
@@ -286,7 +346,7 @@ export default function Clientes() {
                   </tr>
                 ))}
                 {clientes.length === 0 && (
-                  <tr><td colSpan={user.rol === 'PROPIETARIO' ? "6" : "5"} className="px-6 py-8 text-center text-gray-500">No hay clientes inscritos.</td></tr>
+                  <tr><td colSpan={user?.rol === 'PROPIETARIO' ? "7" : "6"} className="px-6 py-8 text-center text-gray-500">No hay clientes inscritos.</td></tr>
                 )}
               </tbody>
             </table>
@@ -294,6 +354,7 @@ export default function Clientes() {
         )}
       </div>
 
+      {}
       {modalNuevoOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl overflow-hidden">
@@ -305,6 +366,7 @@ export default function Clientes() {
               <button onClick={() => {
                 setModalNuevoOpen(false);
                 setClienteCreadoInfo(null);
+                setNuevoCliente(estadoInicialForm);
               }}><X className="text-gray-400 hover:text-gray-600"/></button>
             </div>
 
@@ -317,10 +379,9 @@ export default function Clientes() {
                 <p className="text-gray-600">El cliente <strong>{clienteCreadoInfo.nombre}</strong> ha sido registrado y su membresía está activa.</p>
                 
                 <div className="bg-gray-50 p-6 rounded-lg border border-gray-200 mt-4 inline-block text-left shadow-sm">
-                  <p className="text-sm text-gray-500 mb-3 font-medium">Credenciales de acceso para la App:</p>
-                  <p className="font-mono text-lg text-gray-800 mb-1"><strong>Usuario (CI):</strong> {clienteCreadoInfo.ci}</p>
+                  <p className="text-sm text-gray-500 mb-3 font-medium">Credenciales de la App:</p>
+                  <p className="font-mono text-lg text-gray-800 mb-1"><strong>Usuario:</strong> {clienteCreadoInfo.ci}</p>
                   <p className="font-mono text-lg text-megatlon-primary"><strong>Contraseña:</strong> {clienteCreadoInfo.ci}</p>
-                  <p className="text-xs text-red-500 mt-3 font-medium italic">* Por política del gimnasio, su CI es la contraseña por defecto.</p>
                 </div>
                 
                 <div className="pt-6">
@@ -331,74 +392,120 @@ export default function Clientes() {
                     }} 
                     className="bg-gray-800 hover:bg-gray-900 text-white px-8 py-2 rounded-lg font-medium transition-colors"
                   >
-                    Entendido, Cerrar
+                    Entendido
                   </button>
                 </div>
               </div>
             ) : (
-              <form onSubmit={handleCrearCliente} className="p-6 overflow-y-auto max-h-[70vh] space-y-6">
+              <form onSubmit={handleCrearCliente} className="p-6 overflow-y-auto max-h-[70vh] space-y-6" noValidate>
                 
                 <h3 className="font-bold text-gray-700 border-b pb-2">Datos Personales</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div><label className="block text-sm font-medium text-gray-700 mb-1">CI *</label><input className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-megatlon-primary" value={nuevoCliente.ci} onChange={e => setNuevoCliente({...nuevoCliente, ci: e.target.value})} required/></div>
-                  <div><label className="block text-sm font-medium text-gray-700 mb-1">Fecha Nacimiento *</label><input type="date" className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-megatlon-primary" value={nuevoCliente.fechaNacimiento} onChange={e => setNuevoCliente({...nuevoCliente, fechaNacimiento: e.target.value})} required/></div>
                   
-                  <div><label className="block text-sm font-medium text-gray-700 mb-1">Primer Nombre *</label><input className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-megatlon-primary" value={nuevoCliente.primerNombre} onChange={e => setNuevoCliente({...nuevoCliente, primerNombre: e.target.value})} required/></div>
-                  <div><label className="block text-sm font-medium text-gray-700 mb-1">Segundo Nombre</label><input className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-megatlon-primary" value={nuevoCliente.segundoNombre} onChange={e => setNuevoCliente({...nuevoCliente, segundoNombre: e.target.value})}/></div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">CI *</label>
+                    <input name="ci" className={`w-full p-2 border rounded focus:ring-2 focus:outline-none ${errores.ci ? 'border-red-500 focus:ring-red-200' : 'border-gray-300 focus:ring-megatlon-primary'}`} value={nuevoCliente.ci} onChange={handleChangeNuevoCliente} placeholder="Ej. 1234567"/>
+                    {errores.ci && <p className="text-red-500 text-xs mt-1">{errores.ci}</p>}
+                  </div>
                   
-                  <div><label className="block text-sm font-medium text-gray-700 mb-1">Primer Apellido *</label><input className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-megatlon-primary" value={nuevoCliente.primerApellido} onChange={e => setNuevoCliente({...nuevoCliente, primerApellido: e.target.value})} required/></div>
-                  <div><label className="block text-sm font-medium text-gray-700 mb-1">Segundo Apellido</label><input className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-megatlon-primary" value={nuevoCliente.segundoApellido} onChange={e => setNuevoCliente({...nuevoCliente, segundoApellido: e.target.value})}/></div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Fecha Nacimiento *</label>
+                    <input type="date" name="fechaNacimiento" className={`w-full p-2 border rounded focus:ring-2 focus:outline-none ${errores.fechaNacimiento ? 'border-red-500 focus:ring-red-200' : 'border-gray-300 focus:ring-megatlon-primary'}`} value={nuevoCliente.fechaNacimiento} onChange={handleChangeNuevoCliente}/>
+                    {errores.fechaNacimiento && <p className="text-red-500 text-xs mt-1">{errores.fechaNacimiento}</p>}
+                  </div>
                   
-                  <div><label className="block text-sm font-medium text-gray-700 mb-1">Teléfono *</label><input className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-megatlon-primary" value={nuevoCliente.telefono} onChange={e => setNuevoCliente({...nuevoCliente, telefono: e.target.value})} required/></div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Primer Nombre *</label>
+                    <input name="primerNombre" className={`w-full p-2 border rounded focus:ring-2 focus:outline-none ${errores.primerNombre ? 'border-red-500 focus:ring-red-200' : 'border-gray-300 focus:ring-megatlon-primary'}`} value={nuevoCliente.primerNombre} onChange={handleChangeNuevoCliente}/>
+                    {errores.primerNombre && <p className="text-red-500 text-xs mt-1">{errores.primerNombre}</p>}
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Segundo Nombre</label>
+                    <input name="segundoNombre" className={`w-full p-2 border rounded focus:ring-2 focus:outline-none ${errores.segundoNombre ? 'border-red-500 focus:ring-red-200' : 'border-gray-300 focus:ring-megatlon-primary'}`} value={nuevoCliente.segundoNombre} onChange={handleChangeNuevoCliente}/>
+                    {errores.segundoNombre && <p className="text-red-500 text-xs mt-1">{errores.segundoNombre}</p>}
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Primer Apellido *</label>
+                    <input name="primerApellido" className={`w-full p-2 border rounded focus:ring-2 focus:outline-none ${errores.primerApellido ? 'border-red-500 focus:ring-red-200' : 'border-gray-300 focus:ring-megatlon-primary'}`} value={nuevoCliente.primerApellido} onChange={handleChangeNuevoCliente}/>
+                    {errores.primerApellido && <p className="text-red-500 text-xs mt-1">{errores.primerApellido}</p>}
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Segundo Apellido</label>
+                    <input name="segundoApellido" className={`w-full p-2 border rounded focus:ring-2 focus:outline-none ${errores.segundoApellido ? 'border-red-500 focus:ring-red-200' : 'border-gray-300 focus:ring-megatlon-primary'}`} value={nuevoCliente.segundoApellido} onChange={handleChangeNuevoCliente}/>
+                    {errores.segundoApellido && <p className="text-red-500 text-xs mt-1">{errores.segundoApellido}</p>}
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono *</label>
+                    <input name="telefono" className={`w-full p-2 border rounded focus:ring-2 focus:outline-none ${errores.telefono ? 'border-red-500 focus:ring-red-200' : 'border-gray-300 focus:ring-megatlon-primary'}`} value={nuevoCliente.telefono} onChange={handleChangeNuevoCliente} placeholder="Ej. 71800000"/>
+                    {errores.telefono && <p className="text-red-500 text-xs mt-1">{errores.telefono}</p>}
+                  </div>
+                  
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Género *</label>
-                    <select className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-megatlon-primary" value={nuevoCliente.genero} onChange={e => setNuevoCliente({...nuevoCliente, genero: e.target.value})}>
+                    <select name="genero" className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-megatlon-primary outline-none" value={nuevoCliente.genero} onChange={handleChangeNuevoCliente}>
                       <option value="MASCULINO">Masculino</option><option value="FEMENINO">Femenino</option><option value="OTRO">Otro</option>
                     </select>
                   </div>
                   
-                  <div className="md:col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">Dirección *</label><input className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-megatlon-primary" value={nuevoCliente.direccion} onChange={e => setNuevoCliente({...nuevoCliente, direccion: e.target.value})} required/></div>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Dirección *</label>
+                    <input name="direccion" className={`w-full p-2 border rounded focus:ring-2 focus:outline-none ${errores.direccion ? 'border-red-500 focus:ring-red-200' : 'border-gray-300 focus:ring-megatlon-primary'}`} value={nuevoCliente.direccion} onChange={handleChangeNuevoCliente}/>
+                    {errores.direccion && <p className="text-red-500 text-xs mt-1">{errores.direccion}</p>}
+                  </div>
                 </div>
 
+                {/* MEMBRESÍA OBLIGATORIA */}
                 <h3 className="font-bold text-gray-700 border-b pb-2 pt-4">Plan de Membresía Inicial</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-4 border border-gray-200 rounded-lg">
                   <div>
                     <label className="block text-sm font-bold text-megatlon-primary mb-1">Seleccionar Plan *</label>
                     <select 
-                      required
-                      className="w-full p-2 border border-gray-300 rounded bg-white focus:ring-2 focus:ring-megatlon-primary" 
+                      name="planId"
+                      className={`w-full p-2 border rounded bg-white focus:ring-2 focus:outline-none ${errores.planId ? 'border-red-500 focus:ring-red-200' : 'border-gray-300 focus:ring-megatlon-primary'}`}
                       value={nuevoCliente.planId} 
-                      onChange={e => setNuevoCliente({...nuevoCliente, planId: e.target.value, disciplinaId: ''})}
+                      onChange={e => {
+                        setNuevoCliente({...nuevoCliente, planId: e.target.value, disciplinaId: ''});
+                        if (errores.planId) setErrores(prev => ({...prev, planId: null}));
+                      }}
                     >
                       <option value="">-- Elige un Plan --</option>
                       {planes.map(p => (
                         <option key={p.id} value={p.id}>{p.nombre} (Bs. {p.precio})</option>
                       ))}
                     </select>
+                    {errores.planId && <p className="text-red-500 text-xs mt-1">{errores.planId}</p>}
                   </div>
 
                   {requiereDisciplina && (
                     <div>
                       <label className="block text-sm font-bold text-megatlon-primary mb-1">Seleccionar Disciplina *</label>
                       <select 
-                        required
-                        className="w-full p-2 border border-gray-300 rounded bg-white focus:ring-2 focus:ring-megatlon-primary" 
+                        name="disciplinaId"
+                        className={`w-full p-2 border rounded bg-white focus:ring-2 focus:outline-none ${errores.disciplinaId ? 'border-red-500 focus:ring-red-200' : 'border-gray-300 focus:ring-megatlon-primary'}`}
                         value={nuevoCliente.disciplinaId} 
-                        onChange={e => setNuevoCliente({...nuevoCliente, disciplinaId: e.target.value})}
+                        onChange={e => {
+                          setNuevoCliente({...nuevoCliente, disciplinaId: e.target.value});
+                          if (errores.disciplinaId) setErrores(prev => ({...prev, disciplinaId: null}));
+                        }}
                       >
                         <option value="">-- Elige la Disciplina --</option>
                         {disciplinas.map(d => (
                           <option key={d.id} value={d.id}>{d.nombre}</option>
                         ))}
                       </select>
+                      {errores.disciplinaId && <p className="text-red-500 text-xs mt-1">{errores.disciplinaId}</p>}
                     </div>
                   )}
 
-                  {user.rol === 'PROPIETARIO' && (
+                  {user?.rol === 'PROPIETARIO' && (
                     <div className="md:col-span-2 mt-2">
                       <label className="block text-sm font-bold text-gray-800 mb-1">Asignar a Sucursal *</label>
                       <select 
-                        className="w-full p-2 border border-gray-300 rounded bg-white focus:ring-2 focus:ring-megatlon-primary" 
+                        className="w-full p-2 border border-gray-300 rounded bg-white focus:ring-2 focus:ring-megatlon-primary outline-none" 
                         value={nuevoCliente.sucursalId} 
                         onChange={e => setNuevoCliente({...nuevoCliente, sucursalId: e.target.value})}
                       >
@@ -412,8 +519,8 @@ export default function Clientes() {
                 </div>
                 
                 <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-gray-100">
-                  <button type="button" onClick={() => setModalNuevoOpen(false)} className="px-4 py-2 bg-gray-100 rounded hover:bg-gray-200">Cancelar</button>
-                  <button type="submit" disabled={guardando || !nuevoCliente.planId} className="px-6 py-2 bg-megatlon-primary hover:bg-red-700 text-white rounded flex items-center gap-2 disabled:opacity-50">
+                  <button type="button" onClick={() => { setModalNuevoOpen(false); setErrores({}); }} className="px-4 py-2 bg-gray-100 rounded hover:bg-gray-200">Cancelar</button>
+                  <button type="submit" disabled={guardando} className="px-6 py-2 bg-megatlon-primary hover:bg-red-700 text-white rounded flex items-center gap-2 disabled:opacity-50">
                     <Save size={18}/> {guardando ? 'Guardando...' : 'Inscribir y Vender Plan'}
                   </button>
                 </div>
@@ -423,23 +530,24 @@ export default function Clientes() {
         </div>
       )}
 
+      {}
       {modalEditarOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl overflow-hidden">
             <div className="flex justify-between items-center p-6 border-b">
               <h2 className="text-xl font-bold flex items-center gap-2">
-                <Edit className="text-blue-500"/> Editar Cliente: {clienteAEditar.ci}
+                <Edit className="text-blue-500"/> Editar Contacto: {clienteAEditar.ci}
               </h2>
               <button onClick={() => setModalEditarOpen(false)}><X className="text-gray-400 hover:text-gray-600"/></button>
             </div>
             <form onSubmit={handleEditarCliente} className="p-6 overflow-y-auto max-h-[70vh]">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div><label className="block text-sm font-medium text-gray-700 mb-1">Primer Nombre *</label><input className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500" value={clienteAEditar.primerNombre} onChange={e => setClienteAEditar({...clienteAEditar, primerNombre: e.target.value})} required/></div>
-                <div><label className="block text-sm font-medium text-gray-700 mb-1">Segundo Nombre</label><input className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500" value={clienteAEditar.segundoNombre || ''} onChange={e => setClienteAEditar({...clienteAEditar, segundoNombre: e.target.value})}/></div>
-                <div><label className="block text-sm font-medium text-gray-700 mb-1">Primer Apellido *</label><input className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500" value={clienteAEditar.primerApellido} onChange={e => setClienteAEditar({...clienteAEditar, primerApellido: e.target.value})} required/></div>
-                <div><label className="block text-sm font-medium text-gray-700 mb-1">Segundo Apellido</label><input className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500" value={clienteAEditar.segundoApellido || ''} onChange={e => setClienteAEditar({...clienteAEditar, segundoApellido: e.target.value})}/></div>
-                <div><label className="block text-sm font-medium text-gray-700 mb-1">Teléfono *</label><input className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500" value={clienteAEditar.telefono} onChange={e => setClienteAEditar({...clienteAEditar, telefono: e.target.value})} required/></div>
-                <div className="md:col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">Dirección *</label><input className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500" value={clienteAEditar.direccion} onChange={e => setClienteAEditar({...clienteAEditar, direccion: e.target.value})} required/></div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-1">Primer Nombre *</label><input className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none" value={clienteAEditar.primerNombre} onChange={e => setClienteAEditar({...clienteAEditar, primerNombre: e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '')})} required/></div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-1">Segundo Nombre</label><input className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none" value={clienteAEditar.segundoNombre || ''} onChange={e => setClienteAEditar({...clienteAEditar, segundoNombre: e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '')})}/></div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-1">Primer Apellido *</label><input className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none" value={clienteAEditar.primerApellido} onChange={e => setClienteAEditar({...clienteAEditar, primerApellido: e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '')})} required/></div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-1">Segundo Apellido</label><input className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none" value={clienteAEditar.segundoApellido || ''} onChange={e => setClienteAEditar({...clienteAEditar, segundoApellido: e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '')})}/></div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-1">Teléfono *</label><input className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none" value={clienteAEditar.telefono} onChange={e => setClienteAEditar({...clienteAEditar, telefono: e.target.value.replace(/\D/g, '')})} required/></div>
+                <div className="md:col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">Dirección *</label><input className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none" value={clienteAEditar.direccion} onChange={e => setClienteAEditar({...clienteAEditar, direccion: e.target.value})} required/></div>
               </div>
               <div className="mt-6 flex justify-end gap-3">
                 <button type="button" onClick={() => setModalEditarOpen(false)} className="px-4 py-2 bg-gray-100 rounded hover:bg-gray-200">Cancelar</button>
