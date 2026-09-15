@@ -3,6 +3,7 @@ package com.backend.megatlon.controllers;
 import com.backend.megatlon.dto.EmpleadoCreadoResponse;
 import com.backend.megatlon.dto.RegistrarEmpleadoRequest;
 import com.backend.megatlon.services.PropietarioService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,7 +19,7 @@ public class PropietarioController {
     private final PropietarioService propietarioService;
 
     @PostMapping("/empleados")
-    public ResponseEntity<EmpleadoCreadoResponse> registrarEmpleado(@RequestBody RegistrarEmpleadoRequest request) {
+    public ResponseEntity<EmpleadoCreadoResponse> registrarEmpleado(@RequestBody @Valid RegistrarEmpleadoRequest request) {
         EmpleadoCreadoResponse response = propietarioService.registrarEmpleado(request);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }

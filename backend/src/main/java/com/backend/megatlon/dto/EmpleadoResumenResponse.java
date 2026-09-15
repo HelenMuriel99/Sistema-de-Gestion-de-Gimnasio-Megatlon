@@ -31,4 +31,12 @@ public class EmpleadoResumenResponse {
     private Integer intentosFallidos;
     private String estadoAcceso;
     private BigDecimal salarioFijo;
+
+    // Campos opcionales para rol CLIENTE
+    private String planNombre;
+    private String tipoPlan;
+    private BigDecimal planPrecio;
+    private String disciplinaNombre;
+    private LocalDate fechaInicioMembresia;
+    private LocalDate fechaFinMembresia;
 }

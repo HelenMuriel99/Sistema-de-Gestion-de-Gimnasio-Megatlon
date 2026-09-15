@@ -3,19 +3,23 @@ package com.backend.megatlon.services;
 import com.backend.megatlon.dto.ClienteResponse;
 import com.backend.megatlon.enums.EstadoAcceso;
 import com.backend.megatlon.enums.RolNombre;
+import com.backend.megatlon.models.MembresiaCliente;
 import com.backend.megatlon.models.Usuario;
+import com.backend.megatlon.repositories.MembresiaClienteRepository;
 import com.backend.megatlon.repositories.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
 public class ClienteConsultaService {
 
     private final UsuarioRepository usuarioRepository;
+    private final MembresiaClienteRepository membresiaClienteRepository;
 
     @Transactional(readOnly = true)
     public List<ClienteResponse> listarClientesPorSucursal(String ciRecepcionista, EstadoAcceso estadoAcceso) {
@@ -63,9 +67,13 @@ public class ClienteConsultaService {
                 u.getPrimerApellido() + " " +
                 (u.getSegundoApellido() != null ? u.getSegundoApellido() : "")).trim();
 
-        return ClienteResponse.builder()
+        // Buscar la membresía vinculada al cliente
+        Optional<MembresiaCliente> membresiaOpt = membresiaClienteRepository.findByClienteIdWithRelations(u.getId());
+
+        ClienteResponse.ClienteResponseBuilder builder = ClienteResponse.builder()
                 .id(u.getId())
                 .ci(u.getCi())
+                .complementoCi(u.getComplementoCi())
                 .primerNombre(u.getPrimerNombre())
                 .segundoNombre(u.getSegundoNombre())
                 .primerApellido(u.getPrimerApellido())
@@ -78,7 +86,19 @@ public class ClienteConsultaService {
                 .rol(u.getRol().getNombreRol().name())
                 .sucursalId(u.getSucursalBase().getId())
                 .sucursalNombre(u.getSucursalBase().getNombre())
-                .estadoAcceso(u.getEstadoAcceso().name())
-                .build();
+                .estadoAcceso(u.getEstadoAcceso().name());
+
+        // Mapear campos de la membresía en caso de existir
+        if (membresiaOpt.isPresent()) {
+            MembresiaCliente m = membresiaOpt.get();
+            builder.planNombre(m.getPlan().getNombre())
+                    .tipoPlan(m.getPlan().getTipoPlan().name())
+                    .planPrecio(m.getPlan().getPrecio())
+                    .disciplinaNombre(m.getDisciplina() != null ? m.getDisciplina().getNombre() : "TODAS LAS DISCIPLINAS")
+                    .fechaInicioMembresia(m.getFechaInicio())
+                    .fechaFinMembresia(m.getFechaFin());
+        }
+
+        return builder.build();
     }
 }

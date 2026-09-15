@@ -4,8 +4,10 @@ import com.backend.megatlon.dto.EmpleadoResumenResponse;
 import com.backend.megatlon.enums.EstadoAcceso;
 import com.backend.megatlon.enums.RolNombre;
 import com.backend.megatlon.models.EmpleadoDetalle;
+import com.backend.megatlon.models.MembresiaCliente;
 import com.backend.megatlon.models.Usuario;
 import com.backend.megatlon.repositories.EmpleadoDetalleRepository;
+import com.backend.megatlon.repositories.MembresiaClienteRepository;
 import com.backend.megatlon.repositories.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -20,6 +22,7 @@ public class PropietarioConsultaService {
 
     private final UsuarioRepository usuarioRepository;
     private final EmpleadoDetalleRepository empleadoDetalleRepository;
+    private final MembresiaClienteRepository membresiaClienteRepository;
 
     @Transactional(readOnly = true)
     public List<EmpleadoResumenResponse> listarUsuarios(Long sucursalId, RolNombre rol, EstadoAcceso estadoAcceso) {
@@ -49,7 +52,7 @@ public class PropietarioConsultaService {
 
         Optional<EmpleadoDetalle> detalle = empleadoDetalleRepository.findByUsuarioId(u.getId());
 
-        return EmpleadoResumenResponse.builder()
+        EmpleadoResumenResponse.EmpleadoResumenResponseBuilder builder = EmpleadoResumenResponse.builder()
                 .id(u.getId())
                 .ci(u.getCi())
                 .complementoCi(u.getComplementoCi())
@@ -67,7 +70,23 @@ public class PropietarioConsultaService {
                 .sucursalNombre(u.getSucursalBase().getNombre())
                 .intentosFallidos(u.getIntentosFallidos())
                 .estadoAcceso(u.getEstadoAcceso().name())
-                .salarioFijo(detalle.map(EmpleadoDetalle::getSalarioFijo).orElse(null))
-                .build();
+                .salarioFijo(detalle.map(EmpleadoDetalle::getSalarioFijo).orElse(null));
+
+        // Si el usuario es CLIENTE, adjuntamos la información de su membresía
+        if (u.getRol().getNombreRol() == RolNombre.CLIENTE) {
+            Optional<MembresiaCliente> membresiaOpt = membresiaClienteRepository.findByClienteIdWithRelations(u.getId());
+
+            if (membresiaOpt.isPresent()) {
+                MembresiaCliente m = membresiaOpt.get();
+                builder.planNombre(m.getPlan().getNombre())
+                        .tipoPlan(m.getPlan().getTipoPlan().name())
+                        .planPrecio(m.getPlan().getPrecio())
+                        .disciplinaNombre(m.getDisciplina() != null ? m.getDisciplina().getNombre() : "TODAS LAS DISCIPLINAS")
+                        .fechaInicioMembresia(m.getFechaInicio())
+                        .fechaFinMembresia(m.getFechaFin());
+            }
+        }
+
+        return builder.build();
     }
 }

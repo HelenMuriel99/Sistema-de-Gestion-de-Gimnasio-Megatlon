@@ -1,8 +1,8 @@
 package com.backend.megatlon.controllers;
 
-import com.backend.megatlon.dto.ActualizarClienteRequest;
 import com.backend.megatlon.dto.ClienteResponse;
-import com.backend.megatlon.services.ClienteEdicionService;
+import com.backend.megatlon.dto.RenovarMembresiaRequest;
+import com.backend.megatlon.services.MembresiaRenovacionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -11,20 +11,20 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/v1/recepcionista/gestion/clientes")
+@RequestMapping("/api/v1/recepcionista/clientes")
 @RequiredArgsConstructor
 @PreAuthorize("hasRole('RECEPCIONISTA')")
-public class ClienteEdicionController {
+public class ClienteRenovacionController {
 
-    private final ClienteEdicionService clienteEdicionService;
+    private final MembresiaRenovacionService membresiaRenovacionService;
 
-    @PutMapping("/{ci}")
-    public ResponseEntity<ClienteResponse> actualizarCliente(
+    @PutMapping("/{ci}/renovar-plan")
+    public ResponseEntity<ClienteResponse> renovarPlan(
             @PathVariable String ci,
-            @RequestBody @Valid ActualizarClienteRequest request,
+            @Valid @RequestBody RenovarMembresiaRequest request,
             Authentication authentication
     ) {
         String ciRecepcionista = authentication.getName();
-        return ResponseEntity.ok(clienteEdicionService.actualizarCliente(ci, request, ciRecepcionista));
+        return ResponseEntity.ok(membresiaRenovacionService.renovarPlanCliente(ci, request, ciRecepcionista));
     }
 }

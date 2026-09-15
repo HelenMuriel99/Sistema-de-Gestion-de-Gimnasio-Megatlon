@@ -1,6 +1,7 @@
 package com.backend.megatlon.dto;
 
 import com.backend.megatlon.enums.RolNombre;
+import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -15,6 +16,8 @@ import java.time.LocalDate;
 @NoArgsConstructor
 public class RegistrarEmpleadoRequest {
     private String ci;
+
+    @Pattern(regexp = "^[A-Za-z]{0,2}$", message = "El complemento debe tener máximo 2 letras")
     private String complementoCi;
     private String primerNombre;
     private String segundoNombre;

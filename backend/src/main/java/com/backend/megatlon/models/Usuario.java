@@ -65,4 +65,7 @@ public class Usuario {
     @Enumerated(EnumType.STRING)
     @Column(name = "estado_acceso", nullable = false)
     private EstadoAcceso estadoAcceso;
+
+    @OneToOne(mappedBy = "cliente", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private MembresiaCliente membresia;
 }
