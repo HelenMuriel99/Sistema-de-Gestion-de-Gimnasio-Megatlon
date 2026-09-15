@@ -1,0 +1,15 @@
+server:
+  port: 8081
+
+spring:
+  config:
+    activate:
+      on-profile: qa
+  datasource:
+    url: jdbc:sqlite:./db/gimnasio_qa.db
+    driver-class-name: org.sqlite.JDBC
+  jpa:
+    database-platform: org.hibernate.community.dialect.SQLiteDialect
+    hibernate:
+      ddl-auto: create-drop # se crean las tablas al iniciar y al apagar se eliminan
+    show-sql: true
