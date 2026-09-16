@@ -29,6 +29,8 @@ public class ClienteResponse {
     private String sucursalNombre;
     private String estadoAcceso;
 
+    private String passwordGeneradaPlana; // Credencial generada para la vista frontend
+
     // Detalle Membresía
     private String planNombre;
     private String tipoPlan;
