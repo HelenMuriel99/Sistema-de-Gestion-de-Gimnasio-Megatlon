@@ -22,7 +22,7 @@ export default function Clientes() {
   const [clienteCreadoInfo, setClienteCreadoInfo] = useState(null);
 
   const estadoInicialForm = {
-    ci: '', primerNombre: '', segundoNombre: '', primerApellido: '', 
+    ci: '', complementoCi: '', primerNombre: '', segundoNombre: '', primerApellido: '', 
     segundoApellido: '', fechaNacimiento: '', genero: 'MASCULINO', 
     telefono: '', direccion: '', sucursalId: '1',
     planId: '', disciplinaId: ''
@@ -30,6 +30,9 @@ export default function Clientes() {
   const [nuevoCliente, setNuevoCliente] = useState(estadoInicialForm);
   const [clienteAEditar, setClienteAEditar] = useState(estadoInicialForm);
   const [errores, setErrores] = useState({});
+  const [apiErrorCliente, setApiErrorCliente] = useState(null);
+  const [erroresEditar, setErroresEditar] = useState({});
+  const [apiErrorEditar, setApiErrorEditar] = useState(null);
   const [guardando, setGuardando] = useState(false);
 
   useEffect(() => {
@@ -77,20 +80,23 @@ export default function Clientes() {
     }
   };
 
+  // Filtro compartido para los inputs con nombre (name) del formulario de Inscribir Cliente
   const handleChangeNuevoCliente = (e) => {
     const { name, value } = e.target;
     let valorLimpio = value;
 
-    // Filtros en tiempo real 
-    if (name === 'ci' || name === 'telefono') {
-      valorLimpio = value.replace(/\D/g, ''); // Solo números
+    if (name === 'ci') {
+      valorLimpio = value.replace(/\D/g, '').slice(0, 10); // Solo números, máx 10 dígitos
+    } else if (name === 'telefono') {
+      valorLimpio = value.replace(/\D/g, '').slice(0, 8); // Solo números, máx 8 dígitos
+    } else if (name === 'complementoCi') {
+      valorLimpio = value.replace(/[^a-zA-Z]/g, '').slice(0, 2).toUpperCase(); // Solo letras, máx 2, mayúsculas
     } else if (name === 'primerNombre' || name === 'segundoNombre' || name === 'primerApellido' || name === 'segundoApellido') {
       valorLimpio = value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, ''); // Solo letras
     }
 
     setNuevoCliente(prev => ({ ...prev, [name]: valorLimpio }));
 
-    // Limpia el error si el usuario empieza a escribir
     if (errores[name]) {
       setErrores(prev => ({ ...prev, [name]: null }));
     }
@@ -136,8 +142,36 @@ export default function Clientes() {
     return Object.keys(nuevosErrores).length === 0;
   };
 
+  // Traduce un error 409 del backend (CI o teléfono duplicado) a un mensaje claro
+  const interpretarErrorGuardado = (err) => {
+    const status = err.response?.status;
+    const serverMessage = err.response?.data?.message || '';
+    const msgLower = typeof serverMessage === 'string' ? serverMessage.toLowerCase() : '';
+
+    if (status === 409 && (msgLower.includes('telefono') || msgLower.includes('teléfono'))) {
+      return 'Ya hay un cliente registrado con ese número de teléfono.';
+    }
+    if (status === 409 && msgLower.includes('ci')) {
+      return 'Ya existe un usuario registrado con este Carnet de Identidad (CI).';
+    }
+    if (status === 409 && serverMessage) {
+      return serverMessage;
+    }
+    if (status === 403) {
+      return 'No tienes permisos para realizar esta acción.';
+    }
+    if (status === 401) {
+      return 'Tu sesión expiró o no es válida. Vuelve a iniciar sesión.';
+    }
+    if (serverMessage) {
+      return serverMessage;
+    }
+    return 'Error al guardar el cliente. Revisa la conexión o tus permisos.';
+  };
+
   const handleCrearCliente = async (e) => {
     e.preventDefault();
+    setApiErrorCliente(null);
     if (!validarFormulario()) return;
 
     setGuardando(true);
@@ -148,6 +182,7 @@ export default function Clientes() {
 
       const payload = {
         ci: nuevoCliente.ci.trim(),
+        complementoCi: nuevoCliente.complementoCi?.trim() || null,
         primerNombre: nuevoCliente.primerNombre.trim(),
         segundoNombre: nuevoCliente.segundoNombre.trim() || null,
         primerApellido: nuevoCliente.primerApellido.trim(),
@@ -160,26 +195,21 @@ export default function Clientes() {
         disciplinaId: nuevoCliente.disciplinaId ? parseInt(nuevoCliente.disciplinaId) : null
       };
 
-      await api.post(endpoint, payload);
+      // Capturamos la respuesta del backend para obtener la password generada
+      const response = await api.post(endpoint, payload);
       cargarDatos();
       
       setClienteCreadoInfo({ 
         ci: nuevoCliente.ci, 
-        nombre: `${nuevoCliente.primerNombre} ${nuevoCliente.primerApellido}` 
+        nombre: `${nuevoCliente.primerNombre} ${nuevoCliente.primerApellido}`,
+        password: response.data.passwordGeneradaPlana || nuevoCliente.ci // Fallback por si acaso
       });
       
       setNuevoCliente(estadoInicialForm);
+      setErrores({});
     } catch (err) {
-      const status = err.response?.status;
-      const msg = err.response?.data?.message || '';
-      
-      if (status === 409 && msg.toLowerCase().includes('ci')) {
-        alert("Error: Este CI ya está registrado en el sistema.");
-      } else if (status === 409 && msg.toLowerCase().includes('telefono')) {
-        alert("Error: Este Teléfono ya está registrado.");
-      } else {
-        alert("Error al registrar: " + (msg || err.message));
-      }
+      console.error("Error al registrar:", err.response || err);
+      setApiErrorCliente(interpretarErrorGuardado(err));
     } finally {
       setGuardando(false);
     }
@@ -187,6 +217,14 @@ export default function Clientes() {
 
   const handleEditarCliente = async (e) => {
     e.preventDefault();
+    setApiErrorEditar(null);
+
+    if (clienteAEditar.telefono && !/^[467]\d{7}$/.test(clienteAEditar.telefono)) {
+      setErroresEditar({ telefono: 'Ingrese un número válido de 8 dígitos' });
+      return;
+    }
+    setErroresEditar({});
+
     setGuardando(true);
     try {
       const endpoint = user.rol === 'PROPIETARIO'
@@ -194,6 +232,7 @@ export default function Clientes() {
         : `/recepcionista/gestion/clientes/${clienteAEditar.ci}`;
 
       const payload = {
+        complementoCi: clienteAEditar.complementoCi?.trim() || null,
         primerNombre: clienteAEditar.primerNombre,
         segundoNombre: clienteAEditar.segundoNombre,
         primerApellido: clienteAEditar.primerApellido,
@@ -206,7 +245,7 @@ export default function Clientes() {
       cargarDatos();
       setModalEditarOpen(false);
     } catch (err) {
-      alert("Error al actualizar: " + (err.response?.data?.message || err.message));
+      setApiErrorEditar(interpretarErrorGuardado(err));
     } finally {
       setGuardando(false);
     }
@@ -244,6 +283,7 @@ export default function Clientes() {
         <button 
           onClick={() => {
             setErrores({});
+            setApiErrorCliente(null);
             setClienteCreadoInfo(null);
             setModalNuevoOpen(true);
           }}
@@ -297,10 +337,11 @@ export default function Clientes() {
                       <div className="font-bold text-gray-800">{cli.nombreCompleto}</div>
                       <div className="text-xs text-gray-400">{cli.direccion}</div>
                     </td>
-                    <td className="px-6 py-4 font-mono text-gray-500">{cli.ci}</td>
+                    <td className="px-6 py-4 font-mono text-gray-500">
+                      {cli.ci}{cli.complementoCi && <span className="text-gray-400"> - {cli.complementoCi}</span>}
+                    </td>
                     <td className="px-6 py-4">{cli.telefono}</td>
                     
-                    {/* NUEVA COLUMNA DE PLAN REQUERIDA POR FABRIZZIO */}
                     <td className="px-6 py-4 font-medium text-gray-700">
                       {cli.planNombre ? (
                         <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded text-xs border border-blue-100">
@@ -325,6 +366,8 @@ export default function Clientes() {
                       <button 
                         onClick={() => {
                           setClienteAEditar(cli);
+                          setErroresEditar({});
+                          setApiErrorEditar(null);
                           setModalEditarOpen(true);
                         }} 
                         className="text-blue-500 hover:text-blue-700 p-1 mx-1 transition-colors" 
@@ -354,7 +397,6 @@ export default function Clientes() {
         )}
       </div>
 
-      {}
       {modalNuevoOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl overflow-hidden">
@@ -367,6 +409,8 @@ export default function Clientes() {
                 setModalNuevoOpen(false);
                 setClienteCreadoInfo(null);
                 setNuevoCliente(estadoInicialForm);
+                setErrores({});
+                setApiErrorCliente(null);
               }}><X className="text-gray-400 hover:text-gray-600"/></button>
             </div>
 
@@ -381,7 +425,8 @@ export default function Clientes() {
                 <div className="bg-gray-50 p-6 rounded-lg border border-gray-200 mt-4 inline-block text-left shadow-sm">
                   <p className="text-sm text-gray-500 mb-3 font-medium">Credenciales de la App:</p>
                   <p className="font-mono text-lg text-gray-800 mb-1"><strong>Usuario:</strong> {clienteCreadoInfo.ci}</p>
-                  <p className="font-mono text-lg text-megatlon-primary"><strong>Contraseña:</strong> {clienteCreadoInfo.ci}</p>
+                  {/* Aquí inyectamos la contraseña generada dinámicamente por el Backend */}
+                  <p className="font-mono text-lg text-megatlon-primary"><strong>Contraseña:</strong> {clienteCreadoInfo.password}</p>
                 </div>
                 
                 <div className="pt-6">
@@ -399,12 +444,44 @@ export default function Clientes() {
             ) : (
               <form onSubmit={handleCrearCliente} className="p-6 overflow-y-auto max-h-[70vh] space-y-6" noValidate>
                 
+                {apiErrorCliente && (
+                  <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg flex items-start gap-3">
+                    <AlertCircle className="mt-0.5 shrink-0" size={18} />
+                    <p className="text-sm font-medium">{apiErrorCliente}</p>
+                  </div>
+                )}
+
                 <h3 className="font-bold text-gray-700 border-b pb-2">Datos Personales</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">CI *</label>
-                    <input name="ci" className={`w-full p-2 border rounded focus:ring-2 focus:outline-none ${errores.ci ? 'border-red-500 focus:ring-red-200' : 'border-gray-300 focus:ring-megatlon-primary'}`} value={nuevoCliente.ci} onChange={handleChangeNuevoCliente} placeholder="Ej. 1234567"/>
+                    <div className="flex gap-2">
+                      <div className="w-2/3">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">CI *</label>
+                        <input 
+                          name="ci"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          maxLength={10}
+                          className={`w-full p-2 border rounded focus:ring-2 focus:outline-none ${errores.ci ? 'border-red-500 focus:ring-red-200' : 'border-gray-300 focus:ring-megatlon-primary'}`}
+                          value={nuevoCliente.ci}
+                          onChange={handleChangeNuevoCliente}
+                          placeholder="Ej. 1234567"
+                        />
+                      </div>
+                      <div className="w-1/3">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Complemento</label>
+                        <input
+                          name="complementoCi"
+                          type="text"
+                          placeholder="Ej. AB"
+                          title="Complemento"
+                          className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-megatlon-primary text-center"
+                          value={nuevoCliente.complementoCi}
+                          onChange={handleChangeNuevoCliente}
+                        />
+                      </div>
+                    </div>
                     {errores.ci && <p className="text-red-500 text-xs mt-1">{errores.ci}</p>}
                   </div>
                   
@@ -440,7 +517,7 @@ export default function Clientes() {
                   
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono *</label>
-                    <input name="telefono" className={`w-full p-2 border rounded focus:ring-2 focus:outline-none ${errores.telefono ? 'border-red-500 focus:ring-red-200' : 'border-gray-300 focus:ring-megatlon-primary'}`} value={nuevoCliente.telefono} onChange={handleChangeNuevoCliente} placeholder="Ej. 71800000"/>
+                    <input name="telefono" inputMode="numeric" pattern="[0-9]*" maxLength={8} className={`w-full p-2 border rounded focus:ring-2 focus:outline-none ${errores.telefono ? 'border-red-500 focus:ring-red-200' : 'border-gray-300 focus:ring-megatlon-primary'}`} value={nuevoCliente.telefono} onChange={handleChangeNuevoCliente} placeholder="Ej. 71800000"/>
                     {errores.telefono && <p className="text-red-500 text-xs mt-1">{errores.telefono}</p>}
                   </div>
                   
@@ -458,7 +535,6 @@ export default function Clientes() {
                   </div>
                 </div>
 
-                {/* MEMBRESÍA OBLIGATORIA */}
                 <h3 className="font-bold text-gray-700 border-b pb-2 pt-4">Plan de Membresía Inicial</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-4 border border-gray-200 rounded-lg">
                   <div>
@@ -519,7 +595,7 @@ export default function Clientes() {
                 </div>
                 
                 <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-gray-100">
-                  <button type="button" onClick={() => { setModalNuevoOpen(false); setErrores({}); }} className="px-4 py-2 bg-gray-100 rounded hover:bg-gray-200">Cancelar</button>
+                  <button type="button" onClick={() => { setModalNuevoOpen(false); setErrores({}); setApiErrorCliente(null); }} className="px-4 py-2 bg-gray-100 rounded hover:bg-gray-200">Cancelar</button>
                   <button type="submit" disabled={guardando} className="px-6 py-2 bg-megatlon-primary hover:bg-red-700 text-white rounded flex items-center gap-2 disabled:opacity-50">
                     <Save size={18}/> {guardando ? 'Guardando...' : 'Inscribir y Vender Plan'}
                   </button>
@@ -530,7 +606,6 @@ export default function Clientes() {
         </div>
       )}
 
-      {}
       {modalEditarOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl overflow-hidden">
@@ -538,19 +613,48 @@ export default function Clientes() {
               <h2 className="text-xl font-bold flex items-center gap-2">
                 <Edit className="text-blue-500"/> Editar Contacto: {clienteAEditar.ci}
               </h2>
-              <button onClick={() => setModalEditarOpen(false)}><X className="text-gray-400 hover:text-gray-600"/></button>
+              <button onClick={() => { setModalEditarOpen(false); setErroresEditar({}); setApiErrorEditar(null); }}><X className="text-gray-400 hover:text-gray-600"/></button>
             </div>
-            <form onSubmit={handleEditarCliente} className="p-6 overflow-y-auto max-h-[70vh]">
+            <form onSubmit={handleEditarCliente} className="p-6 overflow-y-auto max-h-[70vh] space-y-4">
+              {apiErrorEditar && (
+                <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg flex items-start gap-3">
+                  <AlertCircle className="mt-0.5 shrink-0" size={18} />
+                  <p className="text-sm font-medium">{apiErrorEditar}</p>
+                </div>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div><label className="block text-sm font-medium text-gray-700 mb-1">Primer Nombre *</label><input className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none" value={clienteAEditar.primerNombre} onChange={e => setClienteAEditar({...clienteAEditar, primerNombre: e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '')})} required/></div>
                 <div><label className="block text-sm font-medium text-gray-700 mb-1">Segundo Nombre</label><input className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none" value={clienteAEditar.segundoNombre || ''} onChange={e => setClienteAEditar({...clienteAEditar, segundoNombre: e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '')})}/></div>
                 <div><label className="block text-sm font-medium text-gray-700 mb-1">Primer Apellido *</label><input className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none" value={clienteAEditar.primerApellido} onChange={e => setClienteAEditar({...clienteAEditar, primerApellido: e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '')})} required/></div>
                 <div><label className="block text-sm font-medium text-gray-700 mb-1">Segundo Apellido</label><input className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none" value={clienteAEditar.segundoApellido || ''} onChange={e => setClienteAEditar({...clienteAEditar, segundoApellido: e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '')})}/></div>
-                <div><label className="block text-sm font-medium text-gray-700 mb-1">Teléfono *</label><input className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none" value={clienteAEditar.telefono} onChange={e => setClienteAEditar({...clienteAEditar, telefono: e.target.value.replace(/\D/g, '')})} required/></div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Complemento</label>
+                  <input
+                    type="text"
+                    placeholder="Ej. AB"
+                    title="Complemento"
+                    className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-center"
+                    value={clienteAEditar.complementoCi || ''}
+                    onChange={e => setClienteAEditar({...clienteAEditar, complementoCi: e.target.value.replace(/[^a-zA-Z]/g, '').slice(0, 2).toUpperCase()})}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono *</label>
+                  <input
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    maxLength={8}
+                    className={`w-full p-2 border rounded focus:ring-2 focus:outline-none ${erroresEditar.telefono ? 'border-red-500 focus:ring-red-200' : 'border-gray-300 focus:ring-blue-500'}`}
+                    value={clienteAEditar.telefono}
+                    onChange={e => setClienteAEditar({...clienteAEditar, telefono: e.target.value.replace(/\D/g, '').slice(0, 8)})}
+                    required
+                  />
+                  {erroresEditar.telefono && <p className="text-red-500 text-xs mt-1">{erroresEditar.telefono}</p>}
+                </div>
                 <div className="md:col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">Dirección *</label><input className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none" value={clienteAEditar.direccion} onChange={e => setClienteAEditar({...clienteAEditar, direccion: e.target.value})} required/></div>
               </div>
               <div className="mt-6 flex justify-end gap-3">
-                <button type="button" onClick={() => setModalEditarOpen(false)} className="px-4 py-2 bg-gray-100 rounded hover:bg-gray-200">Cancelar</button>
+                <button type="button" onClick={() => { setModalEditarOpen(false); setErroresEditar({}); setApiErrorEditar(null); }} className="px-4 py-2 bg-gray-100 rounded hover:bg-gray-200">Cancelar</button>
                 <button type="submit" disabled={guardando} className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded flex items-center gap-2 disabled:opacity-50">
                   <Save size={18}/> {guardando ? 'Guardando...' : 'Guardar Cambios'}
                 </button>

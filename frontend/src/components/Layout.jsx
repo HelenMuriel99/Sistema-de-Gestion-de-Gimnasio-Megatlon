@@ -28,6 +28,7 @@ export default function Layout() {
 
     if (user?.rol === 'RECEPCIONISTA') {
       baseOptions.push({ name: 'Clientes', path: '/clientes', icon: <Users size={20} /> });
+      baseOptions.push({ name: 'Punto de Venta', path: '/pos', icon: <CreditCard size={20} /> });
     }
 
     return baseOptions;
