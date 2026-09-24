@@ -6,11 +6,11 @@ El proyecto se desarrolla bajo el marco de trabajo ágil **Scrum**, organizando 
 
 | Rol Scrum | Integrante(s) | Responsabilidades en el Proyecto |
 | :--- | :--- | :--- |
-| **Product Owner / Scrum Master** | Líder de Grupo Helen Muriel | Priorización del Product Backlog, coordinación de sprints y control de cronograma de entregas. |
-| **Analista de Sistemas** | Kimberly Mariana Peredo Bristott | Levantamiento de reglas de negocio, modelado UML, definición de historias de usuario y validación de requerimientos[cite: 4]. |
-| **Development Team (Frontend)** | Dev 2 Juan Jose Lizarazu| Maquetación e implementación de vistas de usuario, formularios de captura y manejo de alertas en interfaz. |
-| **Development Team (Backend)** | Dev-Backend Fabrizzio Achabal| Construcción de APIs, endpoints, esquemas de bases de datos, restricciones de integridad y lógica de negocio. |
-| **QA / Testing** | Tester QA Leonardo Olivera| Diseño y ejecución de matrices de prueba, pruebas de regresión e inspección de validaciones de campos. |
+| **Product Owner / Scrum Master** | Helen Muriel (Lider_del_grupo) | Priorización del Product Backlog, coordinación de sprints y control de cronograma de entregas. |
+| **Analista de Sistemas** | Kimberly Mariana Peredo Bristott (Analista) | Levantamiento de reglas de negocio, modelado UML, definición de historias de usuario y validación de requerimientos[cite: 4]. |
+| **Development Team (Frontend)** | Juan Jose Lizarazu (Dev 2) | Maquetación e implementación de vistas de usuario, formularios de captura y manejo de alertas en interfaz. |
+| **Development Team (Backend)** | Fabrizzio Achabal (Dev-Backend) | Construcción de APIs, endpoints, esquemas de bases de datos, restricciones de integridad y lógica de negocio. |
+| **QA / Testing** | Leonardo Olivera (Tester QA) | Diseño y ejecución de matrices de prueba, pruebas de regresión e inspección de validaciones de campos. |
 
 ---
 
@@ -22,7 +22,8 @@ El proyecto se desarrolla bajo el marco de trabajo ágil **Scrum**, organizando 
 | **Sprint 2: Fase 2 (Diseño y Modelado)** | Semanas 3 y 4 | Modelado de datos relacional, diseño de casos de uso (vista cliente/sistema) e historias de usuario[cite: 4]. | Diagramas UML (PlantUML), Historias de Usuario con Criterios de Aceptación[cite: 4]. |
 | **Revisión 1 (Sprint Review / Refinamiento)** | 31/08/2026 | Auditoría interna de formularios de registro y autenticación. | Informe técnico: detección de fallas en inputs (nombres, teléfonos, edad >= 18 años) y eliminación de errores HTTP 500. |
 | **Revisión 2 (Corrección y Despliegue)** | 31/08/2026 - 03/09/2026 | Aplicación de restricciones de unicidad de CI y desarrollo de registro de clientes en recepción[cite: 4]. | Formulario de clientes operativo en panel de recepcionista e integridad de CI en base de datos[cite: 4]. |
-| **Revisión 3 (Sprint Refinement)** | 03/09/2026 | Análisis de nuevos requerimientos de negocio y casos de borde. | Informe de cambios: soporte multirrol para Administrador, separación de CI/Complemento y notificación de saldo en puerta[cite: 2, 4]. |
+| **Revisión 3 (Sprint Refinement)** | 03/09/2026 | Análisis de nuevos requerimientos de negocio y casos de borde[cite: 2, 4]. | Informe de cambios: separación de CI/Complemento y notificación de saldo en puerta[cite: 2, 4]. |
+| **Revisión 4 (Corrección y Verificación)** | 03/09/2026 - 17/09/2026 | Soporte multirrol (Admin), incorporación de Plan Full en registro, sincronización de planes en recepción y contraseñas automáticas. | Panel de recepción sincronizado con admin, roles cruzados funcionales y credenciales de cliente operativas (queda pendiente UI del dashboard de cliente). |
 
 ---
 
